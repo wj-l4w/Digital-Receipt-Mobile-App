@@ -6,13 +6,15 @@ import {
 	TouchableHighlight,
 	TextInput,
 } from "react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
+import { Ionicons } from "@expo/vector-icons";
 
 import colors from "../assets/config/colors";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
-export default function Login() {
+export default function ReceiptPage() {
 	SplashScreen.preventAutoHideAsync();
 
 	const [fontsLoaded] = useFonts({
@@ -32,35 +34,39 @@ export default function Login() {
 
 	return (
 		<ImageBackground
-			style={styles.background}
+			style={{ flex: 1 }}
 			source={require("../assets/landing.png")}
 			onLayout={onLayoutRootView}>
-			<View style={styles.formView}>
-				<View style={styles.formItem}>
-					<Text style={[styles.text, styles.bold]}>Email:</Text>
-					<TextInput style={[styles.text, styles.input]} placeholder="Email" />
-				</View>
+			<SafeAreaView style={styles.background}>
+				<View style={styles.formView}>
+					<View style={styles.formItem}>
+						<Text style={[styles.text, styles.bold]}>Email:</Text>
+						<TextInput
+							style={[styles.text, styles.input]}
+							placeholder="Email"
+						/>
+					</View>
 
-				<View style={styles.formItem}>
-					<Text style={[styles.text, styles.bold]}>Password:</Text>
-					<TextInput
-						style={[styles.text, styles.input]}
-						autoComplete="password"
-						secureTextEntry={true}
-						placeholder="Password"
-					/>
+					<View style={styles.formItem}>
+						<Text style={[styles.text, styles.bold]}>Password:</Text>
+						<TextInput
+							style={[styles.text, styles.input]}
+							autoComplete="password"
+							secureTextEntry={true}
+							placeholder="Password"
+						/>
+					</View>
 				</View>
-			</View>
-
-			<TouchableHighlight
-				onPress={() => {
-					console.log("Submit pressed");
-				}}
-				style={styles.buttons}
-				activeOpacity={0.6}
-				underlayColor={colors.secondary}>
-				<Text style={styles.buttonText}>Submit</Text>
-			</TouchableHighlight>
+				<TouchableHighlight
+					onPress={() => {
+						console.log("Submit pressed");
+					}}
+					style={styles.buttons}
+					activeOpacity={0.6}
+					underlayColor={colors.secondary}>
+					<Text style={styles.buttonText}>Submit</Text>
+				</TouchableHighlight>
+			</SafeAreaView>
 		</ImageBackground>
 	);
 }
@@ -74,7 +80,7 @@ const styles = StyleSheet.create({
 	bold: {
 		fontFamily: "PT Sans Bold",
 		marginLeft: 12,
-		marginTop: 6,
+		marginTop: 12,
 	},
 	buttons: {
 		top: 20,
@@ -87,8 +93,8 @@ const styles = StyleSheet.create({
 	},
 	buttonText: {
 		fontFamily: "PT Sans Regular",
-		color: colors.black,
-		fontSize: 24,
+		color: colors.text,
+		fontSize: 32,
 	},
 	formItem: {
 		height: 120,
@@ -109,9 +115,9 @@ const styles = StyleSheet.create({
 	},
 	text: {
 		fontFamily: "PT Sans Regular",
-		color: colors.black,
+		color: colors.text,
 		overflow: "visible",
-		fontSize: 32,
+		fontSize: 28,
 		alignItems: "center",
 		position: "absolute",
 	},
