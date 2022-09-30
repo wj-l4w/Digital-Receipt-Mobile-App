@@ -96,7 +96,7 @@ const Receipt = ({ receipt, onPress, logoSrc, backgroundColor, textColor }) => (
 	</TouchableOpacity>
 );
 
-export default function ReceiptPage() {
+export default function BookmarkPage() {
 	//TextView states
 	const [focus, setFocus] = useState(false);
 

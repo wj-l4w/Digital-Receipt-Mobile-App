@@ -118,8 +118,6 @@ const styles = StyleSheet.create({
 	},
 	formItem: {
 		height: 120,
-		// borderColor: colors.black,
-		// borderWidth: 2,
 	},
 	formView: {
 		width: "80%",

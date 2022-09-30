@@ -4,6 +4,7 @@ import LandingPage from "./app/screens/LandingPage";
 import Login from "./app/screens/LoginPage";
 import Register from "./app/screens/RegisterPage";
 import Receipt from "./app/screens/ReceiptPage";
+import Bookmark from "./app/screens/BookmarkPage";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function App() {
@@ -32,6 +33,11 @@ export default function App() {
 						name="ReceiptPage"
 						component={Receipt}
 						options={{ title: "Receipts" }}
+					/>
+					<Stack.Screen
+						name="BookmarkPage"
+						component={Bookmark}
+						options={{ title: "Bookmarks" }}
 					/>
 				</Stack.Navigator>
 			</NavigationContainer>
