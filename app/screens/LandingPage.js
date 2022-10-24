@@ -11,8 +11,11 @@ import { useFonts } from "expo-font";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import colors from "../assets/config/colors";
+import AuthContext from "../context/authContext";
 
 export default function LandingPage({ navigation }) {
+	const { signIn } = React.useContext(AuthContext);
+
 	SplashScreen.preventAutoHideAsync();
 
 	const [fontsLoaded] = useFonts({
@@ -61,9 +64,7 @@ export default function LandingPage({ navigation }) {
 						<Text style={styles.buttonText}>Sign Up</Text>
 					</TouchableHighlight>
 					<TouchableHighlight
-						onPress={() => {
-							navigation.navigate("ReceiptPage");
-						}}
+						onPress={() => signIn()}
 						style={styles.buttons}
 						activeOpacity={0.6}
 						underlayColor={colors.secondary}>
