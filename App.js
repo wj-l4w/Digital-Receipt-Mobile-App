@@ -12,6 +12,7 @@ import Register from "./app/screens/RegisterPage";
 import Receipt from "./app/screens/ReceiptPage";
 import Bookmark from "./app/screens/BookmarkPage";
 import Setting from "./app/screens/SettingPage";
+import Detail from "./app/screens/DetailPage";
 import AuthContext from "./app/context/authContext";
 import colors from "./app/assets/config/colors";
 
@@ -93,6 +94,25 @@ export default function App() {
 		[]
 	);
 
+	function HomeComponent() {
+		return (
+			<Stack.Navigator>
+				<Stack.Screen
+					name="ReceiptPage"
+					component={Receipt}
+					options={{ title: "Receipts" }}
+				/>
+				<Stack.Screen
+					name="DetailPage"
+					component={Detail}
+					options={({ route }) => ({
+						title: route.params.receiptName + " Receipt",
+					})}
+				/>
+			</Stack.Navigator>
+		);
+	}
+
 	return (
 		<SafeAreaProvider>
 			<NavigationContainer>
@@ -121,7 +141,7 @@ export default function App() {
 								tabBarIcon: ({ focused, color, size }) => {
 									let iconName;
 
-									if (route.name === "ReceiptPage") {
+									if (route.name === "Home") {
 										iconName = focused ? "ios-home" : "ios-home-outline";
 									} else if (route.name === "BookmarkPage") {
 										iconName = focused ? "ios-list-circle" : "ios-list";
@@ -137,9 +157,9 @@ export default function App() {
 								tabBarInactiveTintColor: "gray",
 							})}>
 							<Tab.Screen
-								name="ReceiptPage"
-								component={Receipt}
-								options={{ title: "Receipts" }}
+								name="Home"
+								component={HomeComponent}
+								options={{ headerShown: false }}
 							/>
 							<Tab.Screen
 								name="BookmarkPage"

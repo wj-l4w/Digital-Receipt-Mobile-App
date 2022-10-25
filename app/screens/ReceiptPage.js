@@ -96,7 +96,7 @@ const Receipt = ({ receipt, onPress, logoSrc, backgroundColor, textColor }) => (
 	</TouchableOpacity>
 );
 
-export default function ReceiptPage() {
+export default function ReceiptPage({ navigation }) {
 	//TextView states
 	const [focus, setFocus] = useState(false);
 
@@ -122,9 +122,13 @@ export default function ReceiptPage() {
 		return (
 			<Receipt
 				receipt={item}
-				onPress={() =>
-					console.log("Receipt: ReceiptItem - Receipt " + item.ID + " pressed")
-				}
+				onPress={() => {
+					console.log("Receipt: ReceiptItem - Receipt " + item.ID + " pressed");
+					navigation.navigate("DetailPage", {
+						receiptID: item.ID,
+						receiptName: item.name,
+					});
+				}}
 				logoSrc={"text.png"}
 				backgroundColor={colors.primary}
 				textColor={colors.text}
