@@ -11,7 +11,11 @@ import React, { useCallback, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import {
+	getAuth,
+	createUserWithEmailAndPassword,
+	updateProfile,
+} from "firebase/auth";
 
 import colors from "../assets/config/colors";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -128,8 +132,9 @@ export default function RegisterPage() {
 							.then((userCredential) => {
 								// Signed in
 								const user = userCredential.user;
-								user.updateProfile({ displayName: { name } });
-								console.log("User created successfully!");
+								updateProfile(user, { displayName: name });
+								user.reload();
+								console.log("User " + user.uid + " created successfully!");
 							})
 							.catch((error) => {
 								const errorCode = error.code;
