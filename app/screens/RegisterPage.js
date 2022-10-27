@@ -9,9 +9,17 @@ import {
 import React, { useCallback } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 
 import colors from "../assets/config/colors";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import firebaseConfig from "../assets/config/firebaseconfig";
+
+// Initialize Firebase
+const firebaseApp =
+	getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const firebaseAuth = getAuth(firebaseApp);
 
 export default function RegisterPage() {
 	SplashScreen.preventAutoHideAsync();

@@ -5,6 +5,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
 import * as React from "react";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 
 import LandingPage from "./app/screens/LandingPage";
 import Login from "./app/screens/LoginPage";
@@ -13,8 +15,15 @@ import Receipt from "./app/screens/ReceiptPage";
 import Bookmark from "./app/screens/BookmarkPage";
 import Setting from "./app/screens/SettingPage";
 import Detail from "./app/screens/DetailPage";
+import QR from "./app/screens/QRPage";
 import AuthContext from "./app/context/authContext";
 import colors from "./app/assets/config/colors";
+import firebaseConfig from "./app/assets/config/firebaseconfig";
+
+// Initialize Firebase
+const firebaseApp =
+	getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const firebaseAuth = getAuth(firebaseApp);
 
 export default function App() {
 	const Stack = createNativeStackNavigator();
@@ -149,6 +158,8 @@ export default function App() {
 										iconName = focused
 											? "ios-settings"
 											: "ios-settings-outline";
+									} else if (route.name === "QRPage") {
+										iconName = "qr-code";
 									}
 
 									return <Ionicons name={iconName} size={28} color={color} />;
@@ -160,6 +171,11 @@ export default function App() {
 								name="Home"
 								component={HomeComponent}
 								options={{ headerShown: false }}
+							/>
+							<Tab.Screen
+								name="QRPage"
+								component={QR}
+								options={{ title: "Scan" }}
 							/>
 							<Tab.Screen
 								name="BookmarkPage"
