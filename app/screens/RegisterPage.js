@@ -5,15 +5,16 @@ import {
 	ImageBackground,
 	TouchableHighlight,
 	TextInput,
+	Alert,
 } from "react-native";
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 
 import colors from "../assets/config/colors";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import firebaseConfig from "../assets/config/firebaseconfig";
 
 // Initialize Firebase
@@ -22,6 +23,12 @@ const firebaseApp =
 const firebaseAuth = getAuth(firebaseApp);
 
 export default function RegisterPage() {
+	//States
+	const [name, setName] = useState("");
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
+	const [cPassword, setcPassword] = useState("");
+
 	SplashScreen.preventAutoHideAsync();
 
 	const [fontsLoaded] = useFonts({
@@ -52,6 +59,7 @@ export default function RegisterPage() {
 							style={[styles.text, styles.input]}
 							placeholder="Name"
 							autoComplete="name"
+							onChangeText={(text) => setName(text)}
 						/>
 					</View>
 
@@ -61,6 +69,7 @@ export default function RegisterPage() {
 							style={[styles.text, styles.input]}
 							placeholder="Email"
 							autoComplete="email"
+							onChangeText={(text) => setEmail(text)}
 						/>
 					</View>
 
@@ -70,7 +79,8 @@ export default function RegisterPage() {
 							style={[styles.text, styles.input]}
 							autoComplete="password"
 							secureTextEntry={true}
-							placeholder="Password"
+							placeholder="Min. 8 Characters"
+							onChangeText={(text) => setPassword(text)}
 						/>
 					</View>
 
@@ -81,13 +91,62 @@ export default function RegisterPage() {
 							autoComplete="password"
 							secureTextEntry={true}
 							placeholder="Confirm Password"
+							onChangeText={(text) => setcPassword(text)}
 						/>
 					</View>
 				</View>
 
 				<TouchableHighlight
 					onPress={() => {
-						console.log("Submit pressed");
+						console.log("User attempted to create account.");
+						console.log("Name: " + name);
+						console.log("Email: " + email);
+						console.log("Password: " + password);
+						console.log("Confirm Password: " + cPassword);
+
+						//Validating data
+						const emailregex = new RegExp(
+							/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/
+						);
+						if (name == "") {
+							Alert.alert("Please enter a name");
+							return;
+						} else if (!emailregex.test(email)) {
+							Alert.alert("Inavlid email");
+							return;
+						} else if (password.length < 8) {
+							Alert.alert("Password must be at least 8 characters long.");
+							return;
+						} else if (password != cPassword) {
+							Alert.alert("Password and confirm password does not match.");
+							return;
+						}
+
+						//Creating account
+						console.log("Creating account with Firebase.");
+						createUserWithEmailAndPassword(firebaseAuth, email, password)
+							.then((userCredential) => {
+								// Signed in
+								const user = userCredential.user;
+								user.updateProfile({ displayName: { name } });
+								console.log("User created successfully!");
+							})
+							.catch((error) => {
+								const errorCode = error.code;
+								const errorMessage = error.message;
+								console.log("User creation unsuccessful!");
+								console.log("Error Code " + errorCode + ": " + errorMessage);
+								if (errorCode == "auth/email-already-in-use") {
+									Alert.alert("This email is already registered!");
+									return;
+								} else {
+									Alert.alert(
+										"Oops something went wrong!",
+										"Error Code " + errorCode + ": " + errorMessage
+									);
+									return;
+								}
+							});
 					}}
 					style={styles.buttons}
 					activeOpacity={0.6}

@@ -5,16 +5,16 @@ import {
 	ImageBackground,
 	TouchableHighlight,
 	TextInput,
+	Alert,
 } from "react-native";
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 
 import colors from "../assets/config/colors";
-import AuthContext from "../context/authContext";
 import firebaseConfig from "../assets/config/firebaseconfig";
 
 // Initialize Firebase
@@ -23,7 +23,9 @@ const firebaseApp =
 const firebaseAuth = getAuth(firebaseApp);
 
 export default function LoginPage() {
-	const { signIn } = React.useContext(AuthContext);
+	//States
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
 
 	SplashScreen.preventAutoHideAsync();
 
@@ -54,6 +56,7 @@ export default function LoginPage() {
 						<TextInput
 							style={[styles.text, styles.input]}
 							placeholder="Email"
+							onChangeText={(text) => setEmail(text)}
 						/>
 					</View>
 
@@ -64,14 +67,39 @@ export default function LoginPage() {
 							autoComplete="password"
 							secureTextEntry={true}
 							placeholder="Password"
+							onChangeText={(text) => setPassword(text)}
 						/>
 					</View>
 				</View>
 
 				<TouchableHighlight
 					onPress={() => {
-						console.log("Submit pressed");
-						signIn();
+						console.log("User attempted to login.");
+						signInWithEmailAndPassword(firebaseAuth, email, password)
+							.then((userCredential) => {
+								// Signed in
+								const user = userCredential.user;
+								console.log("User logged in successfully!");
+							})
+							.catch((error) => {
+								const errorCode = error.code;
+								const errorMessage = error.message;
+								console.log("User login unsuccessful!");
+								console.log("Error Code " + errorCode + ": " + errorMessage);
+								if (errorCode == "auth/wrong-password") {
+									Alert.alert("Wrong password!");
+									return;
+								} else if (errorCode == "auth/user-not-found") {
+									Alert.alert("User not found!");
+									return;
+								} else {
+									Alert.alert(
+										"Oops something went wrong!",
+										"Error Code " + errorCode + ": " + errorMessage
+									);
+									return;
+								}
+							});
 					}}
 					style={styles.buttons}
 					activeOpacity={0.6}
