@@ -10,7 +10,6 @@ import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
 
 import colors from "../assets/config/colors";
 import firebaseConfig from "../assets/config/firebaseconfig";
@@ -18,7 +17,6 @@ import firebaseConfig from "../assets/config/firebaseconfig";
 // Initialize Firebase
 const firebaseApp =
 	getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-const firebaseAuth = getAuth(firebaseApp);
 
 export default function LandingPage({ navigation }) {
 	SplashScreen.preventAutoHideAsync();
@@ -69,7 +67,7 @@ export default function LandingPage({ navigation }) {
 						<Text style={styles.buttonText}>Sign Up</Text>
 					</TouchableHighlight>
 					<TouchableHighlight
-						onPress={console.log("User tried to login annonymously")}
+						onPress={() => console.log("User tried to login annonymously")}
 						style={styles.buttons}
 						activeOpacity={0.6}
 						underlayColor={colors.secondary}>

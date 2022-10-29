@@ -12,12 +12,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { initializeApp, getApps, getApp } from "firebase/app";
-import {
-	getAuth,
-	signInWithEmailAndPassword,
-	setPersistence,
-	browserLocalPersistence,
-} from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 
 import colors from "../assets/config/colors";
 import firebaseConfig from "../assets/config/firebaseconfig";
@@ -26,10 +21,6 @@ import firebaseConfig from "../assets/config/firebaseconfig";
 const firebaseApp =
 	getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const firebaseAuth = getAuth(firebaseApp);
-//Setting firebase persistence
-(async () => {
-	await setPersistence(firebaseAuth, browserLocalPersistence);
-})();
 
 export default function LoginPage() {
 	//States

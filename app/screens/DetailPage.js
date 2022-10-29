@@ -74,12 +74,12 @@ const ITEMS = [
 
 //Render item
 const renderItem = (item) => {
-	return <Item item={item} textColor={colors.text} />;
+	return <Item item={item} textColor={colors.text} key={item.key} />;
 };
 
 //Receipt items
 const Item = ({ item, textColor }) => (
-	<View style={styles.itemRow} key={item.key}>
+	<View style={styles.itemRow}>
 		<View style={[styles.itemColumn1]}>
 			<Text style={[styles.text, textColor]}>{item.name}</Text>
 			{renderDesc(item.desc, textColor)}
@@ -290,7 +290,6 @@ const styles = StyleSheet.create({
 		color: colors.text,
 		fontSize: 24,
 	},
-
 	title: {
 		fontSize: 40,
 	},

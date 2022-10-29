@@ -109,13 +109,11 @@ export default function SettingPage({ navigation }) {
 				<TouchableHighlight
 					onPress={() => {
 						console.log("User attempted to sign out.");
-						signOut(firebaseAuth)
-							.then(() => {})
-							.catch((e) => {
-								console.log(
-									"Something went wrong when signing out the user.\n" + e
-								);
-							});
+						signOut(firebaseAuth).catch((e) => {
+							console.log(
+								"Something went wrong when signing out the user.\n" + e
+							);
+						});
 					}}
 					style={styles.buttons}
 					activeOpacity={0.6}

@@ -5,7 +5,13 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as React from "react";
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import {
+	getAuth,
+	onAuthStateChanged,
+	setPersistence,
+	browserLocalPersistence,
+} from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 import LandingPage from "./app/screens/LandingPage";
 import Login from "./app/screens/LoginPage";
@@ -22,6 +28,10 @@ import firebaseConfig from "./app/assets/config/firebaseconfig";
 const firebaseApp =
 	getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const firebaseAuth = getAuth(firebaseApp);
+//Setting firebase persistence
+// setPersistence(firebaseAuth, browserLocalPersistence);
+//Initialize Firestore
+const firebaseDB = getFirestore(firebaseApp);
 
 export default function App() {
 	const Stack = createNativeStackNavigator();
