@@ -1,15 +1,41 @@
-import { Text, StyleSheet, View } from "react-native";
+import { Text, StyleSheet } from "react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { BarCodeScanner } from "expo-barcode-scanner";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import {
+	addDoc,
+	collection,
+	deleteDoc,
+	doc,
+	getDoc,
+	getFirestore,
+} from "firebase/firestore";
+import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 
 import colors from "../assets/config/colors";
-import { BarCodeScanner } from "expo-barcode-scanner";
+import firebaseConfig from "../assets/config/firebaseconfig";
+
+// Initialize Firebase
+const firebaseApp =
+	getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const firestore = getFirestore();
+const firebaseAuth = getAuth(firebaseApp);
 
 export default function QRPage({ navigation }) {
 	const [hasPermission, setHasPermission] = useState(null);
 	const [scanned, setScanned] = useState(false);
+	const [UID, setUID] = useState("");
+
+	// Check if user login exists
+	onAuthStateChanged(firebaseAuth, (user) => {
+		if (user) {
+			//User is signed in
+			setUID(user.uid);
+		}
+	});
 
 	useEffect(() => {
 		const getBarCodeScannerPermissions = async () => {
@@ -22,8 +48,55 @@ export default function QRPage({ navigation }) {
 
 	const handleBarCodeScanned = ({ type, data }) => {
 		setScanned(true);
-		alert(`Bar code with type ${type} and data ${data} has been scanned!`);
+		getReceipt(data);
 	};
+
+	async function getReceipt(receiptID) {
+		//Accessing receipt
+		try {
+			const temporaryReceiptDoc = doc(
+				firestore,
+				"temporaryReceipts/" + receiptID
+			);
+			const receiptSnapshot = await getDoc(temporaryReceiptDoc);
+
+			var receipt;
+
+			if (receiptSnapshot.exists()) {
+				//TODO: figure out undefined with json parse, probs the null stuff
+				receipt = receiptSnapshot.data();
+				console.log(JSON.stringify(receipt));
+			}
+
+			//Move receipt from temporary receipt collections to user specific collection
+			const userReceiptDoc = await addDoc(
+				collection(firestore, "users/" + UID + "/receipts/"),
+				{
+					receipt,
+				}
+			);
+			console.log(
+				"Successfully added receipt in user/" +
+					UID +
+					"/receipts/" +
+					userReceiptDoc.id
+			);
+
+			await deleteDoc(temporaryReceiptDoc);
+			console.log("Successfully removed receipt from temporaryReceipts");
+			//Done
+			navigation.navigate("Home", {
+				screen: "DetailPage",
+				params: {
+					firebaseReceiptID: userReceiptDoc.id,
+					receiptName: receipt["name"],
+				},
+			});
+			setScanned(false);
+		} catch (e) {
+			console.log("Oops an error occured when retrieving the receipt.\n" + e);
+		}
+	}
 
 	SplashScreen.preventAutoHideAsync();
 
