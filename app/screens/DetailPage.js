@@ -1,85 +1,29 @@
-import {
-	View,
-	StyleSheet,
-	Text,
-	ScrollView,
-	Image,
-	FlatList,
-} from "react-native";
-import React, { useCallback } from "react";
+import { View, StyleSheet, Text, ScrollView, Image } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { doc, getDoc, getFirestore } from "firebase/firestore";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 import colors from "../assets/config/colors";
-import { SafeAreaView } from "react-native-safe-area-context";
+import firebaseConfig from "../assets/config/firebaseconfig";
 
-//Dummy item data
-const ITEMS = [
-	{
-		key: "1",
-		name: "Big Mac",
-		quantity: "2",
-		price: "15.98",
-		desc: [
-			"Ala Carte",
-			"Extra Cheese",
-			"Coupon Code:",
-			"WELCOME69",
-			"-RM 2.00",
-		],
-	},
-	{
-		key: "2",
-		name: "Coke",
-		quantity: "4",
-		price: "11.96",
-		desc: ["Large"],
-	},
-	{
-		key: "3",
-		name: "Fries",
-		quantity: "1",
-		price: "4.99",
-		desc: null,
-	},
-	{
-		key: "4",
-		name: "Happy Meal",
-		quantity: "10",
-		price: "200.00",
-		desc: ["Free Toy", "Buzz Lightyear"],
-	},
-	{
-		key: "5",
-		name: "Sundae Cone",
-		quantity: "3",
-		price: "6.00",
-		desc: null,
-	},
-	{
-		key: "6",
-		name: "Fillet O Fish",
-		quantity: "1",
-		price: "7.50",
-		desc: ["No Pickles"],
-	},
-	{
-		key: "7",
-		name: "Oreo Sundae",
-		quantity: "2",
-		price: "7.00",
-		desc: null,
-	},
-];
+// Initialize Firebase
+const firebaseApp =
+	getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const firestore = getFirestore();
+const firebaseAuth = getAuth(firebaseApp);
 
 //Render item
-const renderItem = (item) => {
-	return <Item item={item} textColor={colors.text} />;
+const renderItem = (item, index) => {
+	return <Item item={item} textColor={colors.text} key={index} />;
 };
 
 //Receipt items
 const Item = ({ item, textColor }) => (
-	<View style={styles.itemRow} key={item.key}>
+	<View style={styles.itemRow}>
 		<View style={[styles.itemColumn1]}>
 			<Text style={[styles.text, textColor]}>{item.name}</Text>
 			{renderDesc(item.desc, textColor)}
@@ -115,7 +59,72 @@ const renderDesc = (array, textColor) => {
 };
 
 export default function DetailPage({ route, navigation }) {
-	const { receiptID, receiptName } = route.params;
+	const { firebaseReceiptID, receiptName } = route.params;
+	const [UID, setUID] = useState("");
+	const [itemList, setItemList] = useState([]);
+	const [receiptID, setReceiptID] = useState("");
+	const [receiptTotal, setReceiptTotal] = useState(0.0);
+	const [isTaxIncluded, setIsTaxIncluded] = useState(false);
+	const [receiptTax, setReceiptTax] = useState(0.0);
+	const [receiptRounding, setReceiptRounding] = useState(0.0);
+	const [receiptGrandTotal, setReceiptGrandTotal] = useState(0.0);
+	const [receiptDate, setReceiptDate] = useState("");
+	const [receiptPaymentType, setReceiptPaymentType] = useState("");
+
+	// Check if user login exists
+	onAuthStateChanged(firebaseAuth, (user) => {
+		if (user) {
+			setUID(user.uid);
+		}
+	});
+
+	useEffect(() => {
+		if (UID != "") {
+			//Fetch receipt from firebase
+			fetchReceipt();
+		}
+	}, [UID]);
+
+	//Fetch Receipt Data
+	async function fetchReceipt() {
+		//Getting the receipt data from firestore
+		const userReceiptDocRef = doc(
+			firestore,
+			"users/" + UID + "/receipts/" + firebaseReceiptID
+		);
+		await getDoc(userReceiptDocRef)
+			.then((receiptSnapshot) => {
+				if (receiptSnapshot.exists()) {
+					var receipt = receiptSnapshot.data();
+
+					//Setting item list
+					setItemList(receipt.receipt.items);
+
+					//Setting the rest of the data
+					if (receipt.receipt.tax == "Included in price") {
+						setIsTaxIncluded(true);
+						setReceiptTax("Included in price");
+					} else {
+						setIsTaxIncluded(false);
+						setReceiptTax(receipt.receipt.tax);
+					}
+					setReceiptID(receipt.receipt.ID);
+					setReceiptDate(receipt.receipt.date);
+					setReceiptPaymentType(receipt.receipt.paymentType);
+					setReceiptGrandTotal(receipt.receipt.grandTotal);
+					setReceiptTotal(receipt.receipt.total);
+					setReceiptRounding(receipt.receipt.rounding);
+				} else {
+					console.log("Receipt not found!");
+				}
+			})
+			.catch((error) => {
+				console.log(
+					"Oops an error occured while loading the receipt\n" + error
+				);
+				navigation.navigate("Home");
+			});
+	}
 
 	SplashScreen.preventAutoHideAsync();
 
@@ -141,15 +150,17 @@ export default function DetailPage({ route, navigation }) {
 					<View style={styles.header}>
 						<View style={styles.subheader}>
 							<Text style={styles.text}>Tax Invoice</Text>
-							<Text style={[styles.right, styles.text]}>{receiptID}</Text>
 						</View>
 						<View>
 							<Text style={[styles.bold, styles.title]}>{receiptName}</Text>
 						</View>
 						<View style={styles.subheader}>
-							<Text style={styles.text}>7 Jul 2022</Text>
-							<Text style={[styles.right, styles.text]}>Cash</Text>
+							<Text style={styles.text}>{receiptDate}</Text>
+							<Text style={[styles.right, styles.text]}>
+								{receiptPaymentType}
+							</Text>
 						</View>
+						<Text style={[styles.subtext]}>ID: {receiptID}</Text>
 						<Image
 							style={styles.logo}
 							source={require("../assets/landing.png")}
@@ -167,32 +178,41 @@ export default function DetailPage({ route, navigation }) {
 								<Text style={[styles.text, styles.bold]}>Price</Text>
 							</View>
 						</View>
-						{ITEMS.map((item) => renderItem(item))}
+						{itemList.map((item, index) => renderItem(item, index))}
 					</View>
 					<View style={styles.footer}>
 						<View style={styles.subheader}>
 							<Text style={styles.text}>Total: </Text>
 							<Text style={[styles.right, styles.subtext]}>RM</Text>
-							<Text style={[styles.text, styles.price]}>32.93</Text>
+							<Text style={[styles.text, styles.price]}>
+								{receiptTotal.toFixed(2)}
+							</Text>
 						</View>
 						<View style={styles.subheader}>
 							<Text style={styles.text}>Tax: </Text>
-							{/* <Text style={[styles.right, styles.subtext]}>
-							INCLUDED IN PRICE
-						</Text> */}
-							<Text style={[styles.right, styles.subtext]}>RM</Text>
-							<Text style={[styles.text, styles.price]}>6.90</Text>
+							{isTaxIncluded ? (
+								<Text style={[styles.right, styles.subtext]}>{receiptTax}</Text>
+							) : (
+								<View style={[styles.subheader, styles.right]}>
+									<Text style={[styles.right, styles.subtext]}>RM</Text>
+									<Text style={[styles.text, styles.price]}>
+										{receiptTax.toFixed(2)}
+									</Text>
+								</View>
+							)}
 						</View>
 						<View style={styles.subheader}>
 							<Text style={styles.text}>Rounding: </Text>
 							<Text style={[styles.right, styles.subtext]}>RM</Text>
-							<Text style={[styles.text, styles.price]}>0.07</Text>
+							<Text style={[styles.text, styles.price]}>
+								{receiptRounding.toFixed(2)}
+							</Text>
 						</View>
 						<View style={styles.subheader}>
 							<Text style={styles.text}>Grand Total: </Text>
 							<Text style={[styles.right, styles.subtext]}>RM</Text>
 							<Text style={[styles.bold, styles.title, styles.price]}>
-								1234.56
+								{receiptGrandTotal.toFixed(2)}
 							</Text>
 						</View>
 					</View>
@@ -290,7 +310,6 @@ const styles = StyleSheet.create({
 		color: colors.text,
 		fontSize: 24,
 	},
-
 	title: {
 		fontSize: 40,
 	},

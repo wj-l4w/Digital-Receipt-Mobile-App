@@ -9,13 +9,16 @@ import React, { useCallback } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { initializeApp, getApps, getApp } from "firebase/app";
 
 import colors from "../assets/config/colors";
-import AuthContext from "../context/authContext";
+import firebaseConfig from "../assets/config/firebaseconfig";
+
+// Initialize Firebase
+const firebaseApp =
+	getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 export default function LandingPage({ navigation }) {
-	const { signIn } = React.useContext(AuthContext);
-
 	SplashScreen.preventAutoHideAsync();
 
 	const [fontsLoaded] = useFonts({
@@ -64,7 +67,7 @@ export default function LandingPage({ navigation }) {
 						<Text style={styles.buttonText}>Sign Up</Text>
 					</TouchableHighlight>
 					<TouchableHighlight
-						onPress={() => signIn()}
+						onPress={() => console.log("User tried to login annonymously")}
 						style={styles.buttons}
 						activeOpacity={0.6}
 						underlayColor={colors.secondary}>

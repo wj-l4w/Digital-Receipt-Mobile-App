@@ -11,8 +11,16 @@ import React, { useCallback, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth, signOut } from "firebase/auth";
 
 import colors from "../assets/config/colors";
+import firebaseConfig from "../assets/config/firebaseconfig";
+
+// Initialize Firebase
+const firebaseApp =
+	getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const firebaseAuth = getAuth(firebaseApp);
 
 export default function SettingPage({ navigation }) {
 	//Auto expiry state
@@ -98,6 +106,20 @@ export default function SettingPage({ navigation }) {
 						style={styles.switch}
 					/>
 				</View>
+				<TouchableHighlight
+					onPress={() => {
+						console.log("User attempted to sign out.");
+						signOut(firebaseAuth).catch((e) => {
+							console.log(
+								"Something went wrong when signing out the user.\n" + e
+							);
+						});
+					}}
+					style={styles.buttons}
+					activeOpacity={0.6}
+					underlayColor={colors.secondary}>
+					<Text style={styles.buttonText}>Sign out</Text>
+				</TouchableHighlight>
 			</SafeAreaView>
 		</ImageBackground>
 	);
@@ -118,9 +140,12 @@ const styles = StyleSheet.create({
 		height: "24%",
 	},
 	buttons: {
-		height: "28%",
+		marginTop: "auto",
+		marginBottom: 20,
+		height: 50,
+		width: 200,
 		backgroundColor: colors.primary,
-		borderRadius: 5,
+		borderRadius: 10,
 		alignItems: "center",
 		justifyContent: "center",
 	},

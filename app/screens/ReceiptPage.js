@@ -7,71 +7,23 @@ import {
 	FlatList,
 	TouchableOpacity,
 } from "react-native";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { Feather } from "@expo/vector-icons";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { collection, getDocs, getFirestore, query } from "firebase/firestore";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 import colors from "../assets/config/colors";
-import { SafeAreaView } from "react-native-safe-area-context";
+import firebaseConfig from "../assets/config/firebaseconfig";
 
-//Dummy receipt data
-const DATA = [
-	{
-		ID: "abdefg-1010101",
-		name: "Lorem Ipsum",
-		grandTotal: "1234.56",
-		date: "29 Sep 2022",
-	},
-	{
-		ID: "abdefg-1010102",
-		name: "McDonald's",
-		grandTotal: "420.69",
-		date: "1 Apr 2022",
-	},
-	{
-		ID: "abdefg-1010103",
-		name: "Apple Inc.",
-		grandTotal: "4999.99",
-		date: "27 Sep 2022",
-	},
-	{
-		ID: "abdefg-1010104",
-		name: "Lorem Ipsum",
-		grandTotal: "1234.56",
-		date: "29 Sep 2022",
-	},
-	{
-		ID: "abdefg-1010105",
-		name: "McDonald's",
-		grandTotal: "420.69",
-		date: "1 Apr 2022",
-	},
-	{
-		ID: "abdefg-1010106",
-		name: "Apple Inc.",
-		grandTotal: "4999.99",
-		date: "27 Sep 2022",
-	},
-	{
-		ID: "abdefg-1010107",
-		name: "Lorem Ipsum",
-		grandTotal: "1234.56",
-		date: "29 Sep 2022",
-	},
-	{
-		ID: "abdefg-1010108",
-		name: "McDonald's",
-		grandTotal: "420.69",
-		date: "1 Apr 2022",
-	},
-	{
-		ID: "abdefg-1010109",
-		name: "Apple Inc.",
-		grandTotal: "4999.99",
-		date: "27 Sep 2022",
-	},
-];
+// Initialize Firebase
+const firebaseApp =
+	getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const firestore = getFirestore();
+const firebaseAuth = getAuth(firebaseApp);
 
 //Receipt items
 const Receipt = ({ receipt, onPress, logoSrc, backgroundColor, textColor }) => (
@@ -85,7 +37,7 @@ const Receipt = ({ receipt, onPress, logoSrc, backgroundColor, textColor }) => (
 			<View style={styles.receiptSubTextView}>
 				<Text
 					style={[styles.text, styles.receiptSubText, styles.smol, textColor]}>
-					RM {receipt.grandTotal}
+					RM {receipt.grandTotal.toFixed(2)}
 				</Text>
 				<Text
 					style={[styles.text, styles.receiptSubText, styles.smol, textColor]}>
@@ -99,6 +51,49 @@ const Receipt = ({ receipt, onPress, logoSrc, backgroundColor, textColor }) => (
 export default function ReceiptPage({ navigation }) {
 	//TextView states
 	const [focus, setFocus] = useState(false);
+	const [UID, setUID] = useState("");
+	//Receipts array
+	const [receiptList, setReceiptList] = useState([]);
+
+	// Check if user login exists
+	onAuthStateChanged(firebaseAuth, (user) => {
+		if (user) {
+			setUID(user.uid);
+		}
+	});
+
+	useEffect(() => {
+		if (UID != "") {
+			//Fetch receipt from firebase
+			fetchReceipts();
+		}
+	}, [UID]);
+
+	//Fetch Receipt Data
+	async function fetchReceipts() {
+		//Getting the receipts from firestore
+		const userReceiptCollection = collection(
+			firestore,
+			"users/" + UID + "/receipts"
+		);
+		const q = query(userReceiptCollection);
+		const querySnapshot = await getDocs(q);
+
+		//Building receipt list
+		var tempReceiptList = [];
+		querySnapshot.forEach((doc) => {
+			let receipt = {};
+			receipt.ID = doc.data().receipt.ID;
+			receipt.firebaseID = doc.id;
+			receipt.name = doc.data().receipt.name;
+			receipt.grandTotal = doc.data().receipt.grandTotal;
+			receipt.date = doc.data().receipt.date;
+
+			tempReceiptList.push(receipt);
+		});
+
+		setReceiptList(tempReceiptList);
+	}
 
 	SplashScreen.preventAutoHideAsync();
 
@@ -125,7 +120,7 @@ export default function ReceiptPage({ navigation }) {
 				onPress={() => {
 					console.log("Receipt: ReceiptItem - Receipt " + item.ID + " pressed");
 					navigation.navigate("DetailPage", {
-						receiptID: item.ID,
+						firebaseReceiptID: item.firebaseID,
 						receiptName: item.name,
 					});
 				}}
@@ -177,7 +172,7 @@ export default function ReceiptPage({ navigation }) {
 				</TouchableHighlight>
 			</View>
 			<FlatList
-				data={DATA}
+				data={receiptList}
 				renderItem={renderReceipt}
 				keyExtractor={(receipt) => receipt.ID}
 				style={styles.receiptList}
