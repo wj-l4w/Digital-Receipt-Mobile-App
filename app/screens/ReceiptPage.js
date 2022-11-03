@@ -13,7 +13,17 @@ import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { Feather } from "@expo/vector-icons";
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { collection, getDocs, getFirestore, query } from "firebase/firestore";
+import {
+	collection,
+	endAt,
+	getDocs,
+	getFirestore,
+	onSnapshot,
+	orderBy,
+	query,
+	startAt,
+	where,
+} from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 import colors from "../assets/config/colors";
@@ -51,6 +61,7 @@ const Receipt = ({ receipt, onPress, logoSrc, backgroundColor, textColor }) => (
 export default function ReceiptPage({ navigation }) {
 	//TextView states
 	const [focus, setFocus] = useState(false);
+	const [searchQuery, setSearchQuery] = useState("");
 	const [UID, setUID] = useState("");
 	//Receipts array
 	const [receiptList, setReceiptList] = useState([]);
@@ -66,19 +77,52 @@ export default function ReceiptPage({ navigation }) {
 		if (UID != "") {
 			//Fetch receipt from firebase
 			fetchReceipts();
+
+			//onSnapshot listener with unsubscribe function
+			var userReceiptCollection = collection(
+				firestore,
+				"users/" + UID + "/receipts"
+			);
+			var snapshotQuery = query(userReceiptCollection);
+			const unsub = onSnapshot(snapshotQuery, (returnSnapshot) => {
+				fetchReceipt(returnSnapshot);
+			});
 		}
 	}, [UID]);
 
 	//Fetch Receipt Data
-	async function fetchReceipts() {
-		//Getting the receipts from firestore
-		const userReceiptCollection = collection(
-			firestore,
-			"users/" + UID + "/receipts"
-		);
-		const q = query(userReceiptCollection);
-		const querySnapshot = await getDocs(q);
+	async function fetchReceipts(input) {
+		var q;
 
+		//If no query
+		if (input == null || input == "") {
+			const userReceiptCollection = collection(
+				firestore,
+				"users/" + UID + "/receipts"
+			);
+			q = query(userReceiptCollection);
+		}
+		//Got query input
+		else {
+			const userReceiptCollection = collection(
+				firestore,
+				"users/" + UID + "/receipts"
+			);
+			q = query(
+				userReceiptCollection,
+				where("receipt.bookmarked", "==", false),
+				orderBy("receipt.lowercaseName"),
+				startAt(input),
+				endAt(input + "\uf8ff")
+			);
+		}
+
+		//Getting the receipts from firestore
+		fetchReceipt(await getDocs(q));
+	}
+
+	//Set Receipts
+	function fetchReceipt(querySnapshot) {
 		//Building receipt list
 		var tempReceiptList = [];
 		querySnapshot.forEach((doc) => {
@@ -94,7 +138,6 @@ export default function ReceiptPage({ navigation }) {
 
 		setReceiptList(tempReceiptList);
 	}
-
 	SplashScreen.preventAutoHideAsync();
 
 	const [fontsLoaded] = useFonts({
@@ -131,12 +174,22 @@ export default function ReceiptPage({ navigation }) {
 		);
 	};
 
+	const onTextChanged = (text) => {
+		//Remove non-numerical chars
+		var edittext = text.toString();
+
+		if (edittext != "") {
+		}
+
+		setSearchQuery(edittext);
+	};
+
 	return (
 		<SafeAreaView style={styles.background} onLayout={onLayoutRootView}>
 			<View style={styles.searchBar}>
 				<TouchableHighlight
 					onPress={() => {
-						console.log("Receipt: SearchBar - Search pressed");
+						fetchReceipts(searchQuery);
 					}}
 					activeOpacity={0.6}
 					underlayColor={colors.secondary}>
@@ -154,7 +207,12 @@ export default function ReceiptPage({ navigation }) {
 						focus ? styles.inputFocus : styles.inputBlur,
 					]}
 					onFocus={() => setFocus(true)}
-					onBlur={() => setFocus(false)}
+					onBlur={() => {
+						setFocus(false);
+						fetchReceipts(searchQuery);
+					}}
+					value={searchQuery}
+					onChangeText={(text) => onTextChanged(text)}
 					placeholder="Receipt Name"
 				/>
 				<TouchableHighlight
@@ -176,6 +234,7 @@ export default function ReceiptPage({ navigation }) {
 				renderItem={renderReceipt}
 				keyExtractor={(receipt) => receipt.ID}
 				style={styles.receiptList}
+				extraData={receiptList}
 			/>
 		</SafeAreaView>
 	);

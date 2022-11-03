@@ -145,8 +145,8 @@ export default function DetailPage({ route, navigation }) {
 
 	return (
 		<SafeAreaView style={styles.background} onLayout={onLayoutRootView}>
-			<ScrollView>
-				<View style={styles.scrollView}>
+			<View style={styles.scrollView}>
+				<ScrollView>
 					<View style={styles.header}>
 						<View style={styles.subheader}>
 							<Text style={styles.text}>Tax Invoice</Text>
@@ -216,8 +216,8 @@ export default function DetailPage({ route, navigation }) {
 							</Text>
 						</View>
 					</View>
-				</View>
-			</ScrollView>
+				</ScrollView>
+			</View>
 		</SafeAreaView>
 	);
 }
@@ -295,6 +295,7 @@ const styles = StyleSheet.create({
 	scrollView: {
 		width: "90%",
 		alignSelf: "center",
+		marginBottom: 10,
 	},
 	subtext: {
 		fontFamily: "PT Sans Regular",
