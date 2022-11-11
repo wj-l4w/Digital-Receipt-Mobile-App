@@ -14,8 +14,8 @@ import {
 	getFirestore,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+import { useTheme } from "@react-navigation/native";
 
-import colors from "../assets/config/colors";
 import firebaseConfig from "../assets/config/firebaseconfig";
 
 // Initialize Firebase
@@ -25,6 +25,9 @@ const firestore = getFirestore();
 const firebaseAuth = getAuth(firebaseApp);
 
 export default function QRPage({ navigation }) {
+	//Theme
+	const { colors } = useTheme();
+	//States
 	const [hasPermission, setHasPermission] = useState(null);
 	const [scanned, setScanned] = useState(false);
 	const [UID, setUID] = useState("");
@@ -84,6 +87,7 @@ export default function QRPage({ navigation }) {
 
 			await deleteDoc(temporaryReceiptDoc);
 			console.log("Successfully removed receipt from temporaryReceipts");
+			setScanned(false);
 			//Done
 			navigation.navigate("Home", {
 				screen: "DetailPage",
@@ -92,7 +96,6 @@ export default function QRPage({ navigation }) {
 					receiptName: receipt["name"],
 				},
 			});
-			setScanned(false);
 		} catch (e) {
 			console.log("Oops an error occured when retrieving the receipt.\n" + e);
 		}
@@ -122,6 +125,14 @@ export default function QRPage({ navigation }) {
 		return <Text>No access to camera</Text>;
 	}
 
+	const styles = StyleSheet.create({
+		background: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+	});
+
 	return (
 		<SafeAreaView style={styles.background} onLayout={onLayoutRootView}>
 			<BarCodeScanner
@@ -131,74 +142,3 @@ export default function QRPage({ navigation }) {
 		</SafeAreaView>
 	);
 }
-
-const styles = StyleSheet.create({
-	background: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	bold: {
-		fontFamily: "PT Sans Bold",
-		marginLeft: 12,
-		marginTop: 12,
-	},
-	icons: {
-		marginStart: 20,
-		marginEnd: 20,
-	},
-	inputBlur: {
-		height: 40,
-		flex: 1,
-		paddingLeft: 12,
-		borderColor: colors.primary,
-		borderBottomWidth: 0,
-	},
-	inputFocus: {
-		height: 40,
-		flex: 1,
-		paddingLeft: 12,
-		borderColor: colors.primary,
-		borderBottomWidth: 2,
-	},
-	receiptItem: {
-		flex: 1,
-		flexDirection: "row",
-		width: "150%",
-		height: 100,
-		left: "40%",
-		marginTop: 20,
-		justifyContent: "center",
-	},
-	receiptList: {
-		width: "100%",
-		backgroundColor: colors.secondary,
-	},
-	receiptTextView: {
-		flex: 1,
-		borderRadius: 45,
-		paddingStart: 20,
-		backgroundColor: colors.primary,
-		justifyContent: "center",
-	},
-	receiptSubText: {
-		marginEnd: 20,
-	},
-	receiptSubTextView: {
-		flexDirection: "row",
-	},
-	searchBar: {
-		marginBottom: 20,
-		width: "100%",
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	smol: {
-		fontSize: 20,
-	},
-	text: {
-		fontFamily: "PT Sans Regular",
-		color: colors.text,
-		fontSize: 24,
-	},
-});

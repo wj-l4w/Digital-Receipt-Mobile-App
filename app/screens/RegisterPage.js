@@ -6,6 +6,7 @@ import {
 	TouchableHighlight,
 	TextInput,
 	Alert,
+	useColorScheme,
 } from "react-native";
 import React, { useCallback, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
@@ -16,9 +17,9 @@ import {
 	createUserWithEmailAndPassword,
 	updateProfile,
 } from "firebase/auth";
-
-import colors from "../assets/config/colors";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "@react-navigation/native";
+
 import firebaseConfig from "../assets/config/firebaseconfig";
 
 // Initialize Firebase
@@ -27,6 +28,9 @@ const firebaseApp =
 const firebaseAuth = getAuth(firebaseApp);
 
 export default function RegisterPage() {
+	//Theme
+	const { colors } = useTheme();
+	const colorScheme = useColorScheme();
 	//States
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
@@ -50,18 +54,77 @@ export default function RegisterPage() {
 		return null;
 	}
 
+	const styles = StyleSheet.create({
+		background: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		bold: {
+			fontFamily: "PT Sans Bold",
+			marginLeft: 12,
+			marginTop: 12,
+		},
+		buttons: {
+			top: 20,
+			width: "80%",
+			height: "8%",
+			backgroundColor: colors.lightBlue,
+			borderRadius: 5,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		buttonText: {
+			fontFamily: "PT Sans Regular",
+			color: colors.text,
+			fontSize: 32,
+		},
+		formItem: {
+			height: 120,
+		},
+		formView: {
+			width: "80%",
+			justifyContent: "center",
+		},
+		input: {
+			borderColor: colors.primary,
+			borderWidth: 4,
+			borderRadius: 20,
+			backgroundColor: colors.secondary,
+			height: 70,
+			width: "100%",
+			padding: 12,
+			marginTop: 50,
+		},
+		text: {
+			fontFamily: "PT Sans Regular",
+			color: colors.text,
+			overflow: "visible",
+			fontSize: 28,
+			alignItems: "center",
+			position: "absolute",
+		},
+		overlay: {
+			...StyleSheet.absoluteFillObject,
+			backgroundColor:
+				colorScheme === "dark" ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0)",
+		},
+	});
+
 	return (
 		<ImageBackground
 			style={{ flex: 1 }}
 			source={require("../assets/landing.png")}
 			onLayout={onLayoutRootView}>
 			<SafeAreaView style={styles.background}>
+				<View style={styles.overlay} />
 				<View style={styles.formView}>
 					<View style={styles.formItem}>
 						<Text style={[styles.text, styles.bold]}>Name:</Text>
 						<TextInput
 							style={[styles.text, styles.input]}
 							placeholder="Name"
+							placeholderTextColor={colors.disabled}
 							autoComplete="name"
 							onChangeText={(text) => setName(text)}
 						/>
@@ -72,6 +135,7 @@ export default function RegisterPage() {
 						<TextInput
 							style={[styles.text, styles.input]}
 							placeholder="Email"
+							placeholderTextColor={colors.disabled}
 							autoComplete="email"
 							onChangeText={(text) => setEmail(text)}
 						/>
@@ -84,6 +148,7 @@ export default function RegisterPage() {
 							autoComplete="password"
 							secureTextEntry={true}
 							placeholder="Min. 8 Characters"
+							placeholderTextColor={colors.disabled}
 							onChangeText={(text) => setPassword(text)}
 						/>
 					</View>
@@ -95,6 +160,7 @@ export default function RegisterPage() {
 							autoComplete="password"
 							secureTextEntry={true}
 							placeholder="Confirm Password"
+							placeholderTextColor={colors.disabled}
 							onChangeText={(text) => setcPassword(text)}
 						/>
 					</View>
@@ -162,55 +228,3 @@ export default function RegisterPage() {
 		</ImageBackground>
 	);
 }
-
-const styles = StyleSheet.create({
-	background: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	bold: {
-		fontFamily: "PT Sans Bold",
-		marginLeft: 12,
-		marginTop: 12,
-	},
-	buttons: {
-		top: 20,
-		width: "80%",
-		height: "8%",
-		backgroundColor: colors.primary,
-		borderRadius: 5,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	buttonText: {
-		fontFamily: "PT Sans Regular",
-		color: colors.text,
-		fontSize: 32,
-	},
-	formItem: {
-		height: 120,
-	},
-	formView: {
-		width: "80%",
-		justifyContent: "center",
-	},
-	input: {
-		borderColor: colors.primary,
-		borderWidth: 4,
-		borderRadius: 20,
-		backgroundColor: colors.secondary,
-		height: 70,
-		width: "100%",
-		padding: 12,
-		marginTop: 50,
-	},
-	text: {
-		fontFamily: "PT Sans Regular",
-		color: colors.text,
-		overflow: "visible",
-		fontSize: 28,
-		alignItems: "center",
-		position: "absolute",
-	},
-});
