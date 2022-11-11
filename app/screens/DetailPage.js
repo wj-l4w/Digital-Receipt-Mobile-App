@@ -1,11 +1,25 @@
 import { View, StyleSheet, Text, ScrollView, Image } from "react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { doc, getDoc, getFirestore } from "firebase/firestore";
+import { doc, getDoc, getFirestore, updateDoc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { Ionicons } from "@expo/vector-icons";
+import {
+	HeaderButton,
+	HeaderButtons,
+	Item,
+} from "react-navigation-header-buttons";
+import { captureRef } from "react-native-view-shot";
+import * as MediaLibrary from "expo-media-library";
 
 import colors from "../assets/config/colors";
 import firebaseConfig from "../assets/config/firebaseconfig";
@@ -18,11 +32,11 @@ const firebaseAuth = getAuth(firebaseApp);
 
 //Render item
 const renderItem = (item, index) => {
-	return <Item item={item} textColor={colors.text} key={index} />;
+	return <Items item={item} textColor={colors.text} key={index} />;
 };
 
 //Receipt items
-const Item = ({ item, textColor }) => (
+const Items = ({ item, textColor }) => (
 	<View style={styles.itemRow}>
 		<View style={[styles.itemColumn1]}>
 			<Text style={[styles.text, textColor]}>{item.name}</Text>
@@ -58,6 +72,40 @@ const renderDesc = (array, textColor) => {
 	return returnComponent;
 };
 
+//Bookmark the receipt
+async function bookmark(inputBool, UID, firebaseReceiptID) {
+	//Getting the receipt data from firestore
+	const userReceiptDocRef = doc(
+		firestore,
+		"users/" + UID + "/receipts/" + firebaseReceiptID
+	);
+	const bookmarkData = { "receipt.bookmarked": inputBool ? true : false };
+	await updateDoc(userReceiptDocRef, bookmarkData);
+}
+
+//Saving picture
+async function savePicture(uri) {
+	// Requesting camera roll permissions
+	const { status } = await MediaLibrary.requestPermissionsAsync();
+	if (status === "granted") {
+		try {
+			// Save image to media library
+			await MediaLibrary.saveToLibraryAsync(uri);
+
+			console.log("Image successfully saved to camera roll.");
+		} catch (error) {
+			console.log(
+				"Oops something went wrong when exporting the receipt.\n" + error
+			);
+		}
+	} else {
+		console.log(
+			"Oops something went wrong when exporting the receipt.\n" +
+				"Permission not granted"
+		);
+	}
+}
+
 export default function DetailPage({ route, navigation }) {
 	const { firebaseReceiptID, receiptName } = route.params;
 	const [UID, setUID] = useState("");
@@ -70,6 +118,11 @@ export default function DetailPage({ route, navigation }) {
 	const [receiptGrandTotal, setReceiptGrandTotal] = useState(0.0);
 	const [receiptDate, setReceiptDate] = useState("");
 	const [receiptPaymentType, setReceiptPaymentType] = useState("");
+	const [isReceiptBookmarked, setIsReceiptBookmarked] = useState(false);
+	const [buttonsEnabled, setButtonsEnabled] = useState(false);
+
+	//ScrollView Ref
+	const scrollViewRef = useRef();
 
 	// Check if user login exists
 	onAuthStateChanged(firebaseAuth, (user) => {
@@ -79,9 +132,13 @@ export default function DetailPage({ route, navigation }) {
 	});
 
 	useEffect(() => {
+		//Once UID is set (since there is a delay for state variables in React Native)
 		if (UID != "") {
 			//Fetch receipt from firebase
 			fetchReceipt();
+
+			//Enable the top header buttons
+			setButtonsEnabled(true);
 		}
 	}, [UID]);
 
@@ -114,6 +171,7 @@ export default function DetailPage({ route, navigation }) {
 					setReceiptGrandTotal(receipt.receipt.grandTotal);
 					setReceiptTotal(receipt.receipt.total);
 					setReceiptRounding(receipt.receipt.rounding);
+					setIsReceiptBookmarked(receipt.receipt.bookmarked);
 				} else {
 					console.log("Receipt not found!");
 				}
@@ -125,6 +183,48 @@ export default function DetailPage({ route, navigation }) {
 				navigation.navigate("Home");
 			});
 	}
+
+	const IoniconsHeaderButton = (props) => (
+		<HeaderButton IconComponent={Ionicons} iconSize={28} {...props} />
+	);
+
+	//Set Header Buttons
+	useLayoutEffect(() => {
+		navigation.setOptions({
+			headerRight: () => (
+				<HeaderButtons HeaderButtonComponent={IoniconsHeaderButton}>
+					<Item
+						title="Bookmark"
+						iconName={isReceiptBookmarked ? "bookmark" : "bookmark-outline"}
+						color={buttonsEnabled ? colors.primary : colors.disabled}
+						onPress={() => {
+							console.log("Bookmark pressed");
+							bookmark(!isReceiptBookmarked, UID, firebaseReceiptID);
+							setIsReceiptBookmarked(!isReceiptBookmarked);
+						}}
+					/>
+					<Item
+						title="Export"
+						iconName={"share-outline"}
+						color={buttonsEnabled ? colors.primary : colors.disabled}
+						onPress={() => {
+							console.log("Export pressed");
+							captureRef(scrollViewRef, {
+								format: "jpg",
+								quality: 1.0,
+								result: "tmpfile",
+							}).then(
+								(uri) => {
+									savePicture(uri);
+								},
+								(error) => console.error("Oops, snapshot failed \n", error)
+							);
+						}}
+					/>
+				</HeaderButtons>
+			),
+		});
+	}, [navigation, isReceiptBookmarked, buttonsEnabled]);
 
 	SplashScreen.preventAutoHideAsync();
 
@@ -147,73 +247,77 @@ export default function DetailPage({ route, navigation }) {
 		<SafeAreaView style={styles.background} onLayout={onLayoutRootView}>
 			<View style={styles.scrollView}>
 				<ScrollView>
-					<View style={styles.header}>
-						<View style={styles.subheader}>
-							<Text style={styles.text}>Tax Invoice</Text>
-						</View>
-						<View>
-							<Text style={[styles.bold, styles.title]}>{receiptName}</Text>
-						</View>
-						<View style={styles.subheader}>
-							<Text style={styles.text}>{receiptDate}</Text>
-							<Text style={[styles.right, styles.text]}>
-								{receiptPaymentType}
-							</Text>
-						</View>
-						<Text style={[styles.subtext]}>ID: {receiptID}</Text>
-						<Image
-							style={styles.logo}
-							source={require("../assets/landing.png")}
-						/>
-					</View>
-					<View style={styles.content}>
-						<View style={styles.subheader}>
-							<Text style={[styles.text, styles.itemColumn1, styles.bold]}>
-								Order
-							</Text>
-							<View style={[styles.itemColumn2]}>
-								<Text style={[styles.text, styles.bold]}>Qty</Text>
+					<View ref={scrollViewRef} collapsable={false} style={styles.viewShot}>
+						<View style={styles.header}>
+							<View style={styles.subheader}>
+								<Text style={styles.text}>Tax Invoice</Text>
 							</View>
-							<View style={[styles.itemColumn5]}>
-								<Text style={[styles.text, styles.bold]}>Price</Text>
+							<View>
+								<Text style={[styles.bold, styles.title]}>{receiptName}</Text>
 							</View>
+							<View style={styles.subheader}>
+								<Text style={styles.text}>{receiptDate}</Text>
+								<Text style={[styles.right, styles.text]}>
+									{receiptPaymentType}
+								</Text>
+							</View>
+							<Text style={[styles.subtext]}>ID: {receiptID}</Text>
+							<Image
+								style={styles.logo}
+								source={require("../assets/landing.png")}
+							/>
 						</View>
-						{itemList.map((item, index) => renderItem(item, index))}
-					</View>
-					<View style={styles.footer}>
-						<View style={styles.subheader}>
-							<Text style={styles.text}>Total: </Text>
-							<Text style={[styles.right, styles.subtext]}>RM</Text>
-							<Text style={[styles.text, styles.price]}>
-								{receiptTotal.toFixed(2)}
-							</Text>
-						</View>
-						<View style={styles.subheader}>
-							<Text style={styles.text}>Tax: </Text>
-							{isTaxIncluded ? (
-								<Text style={[styles.right, styles.subtext]}>{receiptTax}</Text>
-							) : (
-								<View style={[styles.subheader, styles.right]}>
-									<Text style={[styles.right, styles.subtext]}>RM</Text>
-									<Text style={[styles.text, styles.price]}>
-										{receiptTax.toFixed(2)}
-									</Text>
+						<View style={styles.content}>
+							<View style={styles.subheader}>
+								<Text style={[styles.text, styles.itemColumn1, styles.bold]}>
+									Order
+								</Text>
+								<View style={[styles.itemColumn2]}>
+									<Text style={[styles.text, styles.bold]}>Qty</Text>
 								</View>
-							)}
+								<View style={[styles.itemColumn5]}>
+									<Text style={[styles.text, styles.bold]}>Price</Text>
+								</View>
+							</View>
+							{itemList.map((item, index) => renderItem(item, index))}
 						</View>
-						<View style={styles.subheader}>
-							<Text style={styles.text}>Rounding: </Text>
-							<Text style={[styles.right, styles.subtext]}>RM</Text>
-							<Text style={[styles.text, styles.price]}>
-								{receiptRounding.toFixed(2)}
-							</Text>
-						</View>
-						<View style={styles.subheader}>
-							<Text style={styles.text}>Grand Total: </Text>
-							<Text style={[styles.right, styles.subtext]}>RM</Text>
-							<Text style={[styles.bold, styles.title, styles.price]}>
-								{receiptGrandTotal.toFixed(2)}
-							</Text>
+						<View style={styles.footer}>
+							<View style={styles.subheader}>
+								<Text style={styles.text}>Total: </Text>
+								<Text style={[styles.right, styles.subtext]}>RM</Text>
+								<Text style={[styles.text, styles.price]}>
+									{receiptTotal.toFixed(2)}
+								</Text>
+							</View>
+							<View style={styles.subheader}>
+								<Text style={styles.text}>Tax: </Text>
+								{isTaxIncluded ? (
+									<Text style={[styles.right, styles.subtext]}>
+										{receiptTax}
+									</Text>
+								) : (
+									<View style={[styles.subheader, styles.right]}>
+										<Text style={[styles.right, styles.subtext]}>RM</Text>
+										<Text style={[styles.text, styles.price]}>
+											{receiptTax.toFixed(2)}
+										</Text>
+									</View>
+								)}
+							</View>
+							<View style={styles.subheader}>
+								<Text style={styles.text}>Rounding: </Text>
+								<Text style={[styles.right, styles.subtext]}>RM</Text>
+								<Text style={[styles.text, styles.price]}>
+									{receiptRounding.toFixed(2)}
+								</Text>
+							</View>
+							<View style={styles.subheader}>
+								<Text style={styles.text}>Grand Total: </Text>
+								<Text style={[styles.right, styles.subtext]}>RM</Text>
+								<Text style={[styles.bold, styles.title, styles.price]}>
+									{receiptGrandTotal.toFixed(2)}
+								</Text>
+							</View>
 						</View>
 					</View>
 				</ScrollView>
@@ -227,6 +331,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		width: "100%",
 		alignItems: "center",
+		backgroundColor: colors.bg,
 	},
 	bold: {
 		fontFamily: "PT Sans Bold",
@@ -293,7 +398,7 @@ const styles = StyleSheet.create({
 		marginLeft: "auto",
 	},
 	scrollView: {
-		width: "90%",
+		width: "100%",
 		alignSelf: "center",
 		marginBottom: 10,
 	},
@@ -313,5 +418,9 @@ const styles = StyleSheet.create({
 	},
 	title: {
 		fontSize: 40,
+	},
+	viewShot: {
+		padding: "5%",
+		backgroundColor: colors.bg,
 	},
 });

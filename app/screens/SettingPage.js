@@ -7,7 +7,7 @@ import {
 	Switch,
 	TextInput,
 } from "react-native";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,22 +16,74 @@ import { getAuth, signOut } from "firebase/auth";
 
 import colors from "../assets/config/colors";
 import firebaseConfig from "../assets/config/firebaseconfig";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Initialize Firebase
 const firebaseApp =
 	getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const firebaseAuth = getAuth(firebaseApp);
 
+const PERSISTENCE_KEY_1 = "AUTO_EXPIRY_ON";
+const PERSISTENCE_KEY_2 = "AUTO_EXPIRY_DAYS";
+const PERSISTENCE_KEY_3 = "DARK_MODE";
+
 export default function SettingPage({ navigation }) {
 	//Auto expiry state
 	const [autoExpiryEnabled, setAutoExpiry] = useState(false);
-	const toggleAutoExpiry = () =>
+	const toggleAutoExpiry = () => {
 		setAutoExpiry((previousState) => !previousState);
+		AsyncStorage.setItem(PERSISTENCE_KEY_1, JSON.stringify(!autoExpiryEnabled));
+	};
 	//Auto expiry days state
 	const [autoExpiryDays, setAutoExpiryDays] = useState("365");
 	//Dark mode state
 	const [darkModeEnabled, setDarkMode] = useState(false);
-	const toggleDarkMode = () => setDarkMode((previousState) => !previousState);
+	const toggleDarkMode = () => {
+		setDarkMode((previousState) => !previousState);
+		AsyncStorage.setItem(PERSISTENCE_KEY_3, JSON.stringify(!darkModeEnabled));
+	};
+
+	//Save persistent changes to settings
+	//And restore them if they exist
+	useEffect(() => {
+		async function restoreSettings() {
+			//Auto expiry on/off
+			const autoExpiryOnState = await AsyncStorage.getItem(PERSISTENCE_KEY_1);
+			const autoExpiryOnResult = autoExpiryOnState
+				? JSON.parse(autoExpiryOnState)
+				: undefined;
+
+			if (autoExpiryOnResult !== undefined) {
+				setAutoExpiry(autoExpiryOnResult);
+			}
+
+			//Auto expiry days
+			const autoExpiryDayState = await AsyncStorage.getItem(PERSISTENCE_KEY_2);
+			const autoExpiryDayResult = autoExpiryDayState
+				? JSON.parse(autoExpiryDayState)
+				: undefined;
+
+			if (autoExpiryDayResult !== undefined) {
+				setAutoExpiryDays(autoExpiryDayResult);
+			}
+
+			//Dark Mode
+			const darkModeState = await AsyncStorage.getItem(PERSISTENCE_KEY_3);
+			const darkModeResult = darkModeState
+				? JSON.parse(darkModeState)
+				: undefined;
+
+			if (darkModeResult !== undefined) {
+				setDarkMode(darkModeResult);
+			}
+
+			console.log("Auto expiry:  " + autoExpiryOnResult);
+			console.log("Auto expiry Days: " + autoExpiryDayResult);
+			console.log("Dark Mode: " + darkModeResult);
+		}
+
+		restoreSettings();
+	}, []);
 
 	SplashScreen.preventAutoHideAsync();
 
@@ -60,6 +112,7 @@ export default function SettingPage({ navigation }) {
 
 		console.log("Receipt age limit set to " + edittext + " days.");
 		setAutoExpiryDays(edittext);
+		AsyncStorage.setItem(PERSISTENCE_KEY_2, JSON.stringify(edittext));
 	};
 
 	return (

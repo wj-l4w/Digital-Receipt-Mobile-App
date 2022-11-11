@@ -9,4 +9,7 @@ export default {
 
 	//This could change depending on light/dark mode
 	text: "#000",
+	textDark: "#fff",
+	bg: "#eeeeee",
+	bgDark: "#424242",
 };

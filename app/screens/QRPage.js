@@ -84,6 +84,7 @@ export default function QRPage({ navigation }) {
 
 			await deleteDoc(temporaryReceiptDoc);
 			console.log("Successfully removed receipt from temporaryReceipts");
+			setScanned(false);
 			//Done
 			navigation.navigate("Home", {
 				screen: "DetailPage",
@@ -92,7 +93,6 @@ export default function QRPage({ navigation }) {
 					receiptName: receipt["name"],
 				},
 			});
-			setScanned(false);
 		} catch (e) {
 			console.log("Oops an error occured when retrieving the receipt.\n" + e);
 		}

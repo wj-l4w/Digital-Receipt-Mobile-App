@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { Feather } from "@expo/vector-icons";
+import Dialog from "react-native-dialog";
 import { initializeApp, getApps, getApp } from "firebase/app";
 import {
 	collection,
@@ -22,7 +23,6 @@ import {
 	orderBy,
 	query,
 	startAt,
-	where,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 
@@ -63,6 +63,8 @@ export default function ReceiptPage({ navigation }) {
 	const [focus, setFocus] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [UID, setUID] = useState("");
+	const [showDialog, setShowDialog] = useState(false);
+	const [sortType, setSortType] = useState(1);
 	//Receipts array
 	const [receiptList, setReceiptList] = useState([]);
 
@@ -76,7 +78,7 @@ export default function ReceiptPage({ navigation }) {
 	useEffect(() => {
 		if (UID != "") {
 			//Fetch receipt from firebase
-			fetchReceipts();
+			fetchReceipts(1);
 
 			//onSnapshot listener with unsubscribe function
 			var userReceiptCollection = collection(
@@ -91,33 +93,44 @@ export default function ReceiptPage({ navigation }) {
 	}, [UID]);
 
 	//Fetch Receipt Data
-	async function fetchReceipts(input) {
-		var q;
+	async function fetchReceipts(sortType, input) {
+		const userReceiptCollection = collection(
+			firestore,
+			"users/" + UID + "/receipts"
+		);
 
-		//If no query
-		if (input == null || input == "") {
-			const userReceiptCollection = collection(
-				firestore,
-				"users/" + UID + "/receipts"
-			);
-			q = query(userReceiptCollection);
+		const queryConditions = [];
+
+		switch (sortType) {
+			case 1:
+				queryConditions.push(orderBy("receipt.lowercaseName", "asc"));
+				break;
+
+			case 2:
+				queryConditions.push(orderBy("receipt.lowercaseName", "desc"));
+				break;
+
+			case 3:
+				queryConditions.push(orderBy("receipt.time", "asc"));
+				break;
+
+			case 4:
+				queryConditions.push(orderBy("receipt.time", "desc"));
+				break;
 		}
+
 		//Got query input
-		else {
-			const userReceiptCollection = collection(
-				firestore,
-				"users/" + UID + "/receipts"
-			);
-			q = query(
-				userReceiptCollection,
-				where("receipt.bookmarked", "==", false),
-				orderBy("receipt.lowercaseName"),
-				startAt(input),
-				endAt(input + "\uf8ff")
-			);
+		if (!(input == null || input == "")) {
+			input = input.toString().toLowerCase();
+			if (sortType > 2) {
+				queryConditions.push(orderBy("receipt.lowercaseName"));
+			}
+			queryConditions.push(startAt(input));
+			queryConditions.push(endAt(input + "\uf8ff"));
 		}
 
 		//Getting the receipts from firestore
+		const q = query(userReceiptCollection, ...queryConditions);
 		fetchReceipt(await getDocs(q));
 	}
 
@@ -189,7 +202,7 @@ export default function ReceiptPage({ navigation }) {
 			<View style={styles.searchBar}>
 				<TouchableHighlight
 					onPress={() => {
-						fetchReceipts(searchQuery);
+						fetchReceipts(sortType, searchQuery);
 					}}
 					activeOpacity={0.6}
 					underlayColor={colors.secondary}>
@@ -209,7 +222,7 @@ export default function ReceiptPage({ navigation }) {
 					onFocus={() => setFocus(true)}
 					onBlur={() => {
 						setFocus(false);
-						fetchReceipts(searchQuery);
+						fetchReceipts(sortType, searchQuery);
 					}}
 					value={searchQuery}
 					onChangeText={(text) => onTextChanged(text)}
@@ -218,24 +231,78 @@ export default function ReceiptPage({ navigation }) {
 				<TouchableHighlight
 					onPress={() => {
 						console.log("Receipt: SearchBar - Filter pressed");
+						setShowDialog(true);
 					}}
 					activeOpacity={0.6}
 					underlayColor={colors.secondary}>
-					<Feather
-						name="filter"
-						size={24}
-						color={colors.text}
-						style={styles.icons}
-					/>
+					<View>
+						<Feather
+							name="filter"
+							size={24}
+							color={colors.text}
+							style={styles.icons}
+						/>
+						<View>
+							<Dialog.Container
+								visible={showDialog}
+								verticalButtons={true}
+								onBackdropPress={() => {
+									setShowDialog(false);
+								}}
+								onRequestClose={() => {
+									setShowDialog(false);
+								}}>
+								<Dialog.Title>Sort by:</Dialog.Title>
+								<Dialog.Button
+									label="Name (Ascending)"
+									onPress={() => {
+										setShowDialog(false);
+										setSortType(1);
+										fetchReceipts(1);
+									}}
+								/>
+								<Dialog.Button
+									label="Name (Descending)"
+									onPress={() => {
+										setShowDialog(false);
+										setSortType(2);
+										fetchReceipts(2);
+									}}
+								/>
+								<Dialog.Button
+									label="Time (Old - New)"
+									onPress={() => {
+										setShowDialog(false);
+										setSortType(3);
+										fetchReceipts(3);
+									}}
+								/>
+								<Dialog.Button
+									label="Time (New - Old)"
+									onPress={() => {
+										setShowDialog(false);
+										setSortType(4);
+										fetchReceipts(4);
+									}}
+								/>
+							</Dialog.Container>
+						</View>
+					</View>
 				</TouchableHighlight>
 			</View>
-			<FlatList
-				data={receiptList}
-				renderItem={renderReceipt}
-				keyExtractor={(receipt) => receipt.ID}
-				style={styles.receiptList}
-				extraData={receiptList}
-			/>
+			{receiptList.length <= 0 ? (
+				<View style={styles.emptyView}>
+					<Text style={styles.text}>No saved receipts yet...</Text>
+				</View>
+			) : (
+				<FlatList
+					data={receiptList}
+					renderItem={renderReceipt}
+					keyExtractor={(receipt) => receipt.ID}
+					style={styles.receiptList}
+					extraData={receiptList}
+				/>
+			)}
 		</SafeAreaView>
 	);
 }
@@ -245,11 +312,18 @@ const styles = StyleSheet.create({
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
+		backgroundColor: colors.bg,
 	},
 	bold: {
 		fontFamily: "PT Sans Bold",
 		marginLeft: 12,
 		marginTop: 12,
+	},
+	emptyView: {
+		flex: 1,
+		backgroundColor: colors.bg,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	icons: {
 		marginStart: 20,
@@ -259,8 +333,8 @@ const styles = StyleSheet.create({
 		height: 40,
 		flex: 1,
 		paddingLeft: 12,
-		borderColor: colors.primary,
-		borderBottomWidth: 0,
+		borderColor: colors.text,
+		borderBottomWidth: 2,
 	},
 	inputFocus: {
 		height: 40,
@@ -280,7 +354,7 @@ const styles = StyleSheet.create({
 	},
 	receiptList: {
 		width: "100%",
-		backgroundColor: colors.secondary,
+		backgroundColor: colors.bg,
 	},
 	receiptTextView: {
 		flex: 1,
