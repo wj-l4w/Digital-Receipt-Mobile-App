@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { Feather } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import Dialog from "react-native-dialog";
 import { initializeApp, getApps, getApp } from "firebase/app";
 import {
@@ -25,8 +26,9 @@ import {
 	startAt,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { useTheme } from "@react-navigation/native";
+import { LinearGradient } from "expo-linear-gradient";
 
-import colors from "../assets/config/colors";
 import firebaseConfig from "../assets/config/firebaseconfig";
 
 // Initialize Firebase
@@ -35,30 +37,9 @@ const firebaseApp =
 const firestore = getFirestore();
 const firebaseAuth = getAuth(firebaseApp);
 
-//Receipt items
-const Receipt = ({ receipt, onPress, logoSrc, backgroundColor, textColor }) => (
-	<TouchableOpacity
-		activeOpacity={0.6}
-		underlayColor={colors.primary}
-		onPress={onPress}
-		style={[styles.receiptItem, backgroundColor]}>
-		<View style={styles.receiptTextView}>
-			<Text style={[styles.text, textColor]}>{receipt.name}</Text>
-			<View style={styles.receiptSubTextView}>
-				<Text
-					style={[styles.text, styles.receiptSubText, styles.smol, textColor]}>
-					RM {receipt.grandTotal.toFixed(2)}
-				</Text>
-				<Text
-					style={[styles.text, styles.receiptSubText, styles.smol, textColor]}>
-					{receipt.date}
-				</Text>
-			</View>
-		</View>
-	</TouchableOpacity>
-);
-
 export default function ReceiptPage({ navigation }) {
+	//Theme
+	const { colors } = useTheme();
 	//TextView states
 	const [focus, setFocus] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
@@ -87,7 +68,7 @@ export default function ReceiptPage({ navigation }) {
 			);
 			var snapshotQuery = query(userReceiptCollection);
 			const unsub = onSnapshot(snapshotQuery, (returnSnapshot) => {
-				fetchReceipt(returnSnapshot);
+				setReceipts(returnSnapshot);
 			});
 		}
 	}, [UID]);
@@ -131,11 +112,11 @@ export default function ReceiptPage({ navigation }) {
 
 		//Getting the receipts from firestore
 		const q = query(userReceiptCollection, ...queryConditions);
-		fetchReceipt(await getDocs(q));
+		setReceipts(await getDocs(q));
 	}
 
 	//Set Receipts
-	function fetchReceipt(querySnapshot) {
+	function setReceipts(querySnapshot) {
 		//Building receipt list
 		var tempReceiptList = [];
 		querySnapshot.forEach((doc) => {
@@ -145,6 +126,7 @@ export default function ReceiptPage({ navigation }) {
 			receipt.name = doc.data().receipt.name;
 			receipt.grandTotal = doc.data().receipt.grandTotal;
 			receipt.date = doc.data().receipt.date;
+			receipt.bookmarked = doc.data().receipt.bookmarked;
 
 			tempReceiptList.push(receipt);
 		});
@@ -180,12 +162,47 @@ export default function ReceiptPage({ navigation }) {
 						receiptName: item.name,
 					});
 				}}
-				logoSrc={"text.png"}
-				backgroundColor={colors.primary}
+				backgroundColor={colors.disabled}
 				textColor={colors.text}
 			/>
 		);
 	};
+
+	//Receipt items
+	const Receipt = ({ receipt, onPress, backgroundColor, textColor }) => (
+		<TouchableOpacity
+			activeOpacity={0.6}
+			underlayColor={backgroundColor}
+			onPress={onPress}
+			style={[styles.receiptItem]}>
+			<LinearGradient
+				start={{ x: 0, y: 0 }}
+				end={{ x: 1, y: 0 }}
+				colors={[colors.primary, colors.secondary]}
+				style={styles.receiptTextView}>
+				<View style={styles.receiptInfo}>
+					<Text style={[styles.text]}>{receipt.name}</Text>
+					<View style={styles.receiptSubTextView}>
+						<Text style={[styles.text, styles.receiptSubText, styles.smol]}>
+							RM {receipt.grandTotal.toFixed(2)}
+						</Text>
+						<Text style={[styles.text, styles.receiptSubText, styles.smol]}>
+							{receipt.date}
+						</Text>
+					</View>
+				</View>
+				<Ionicons
+					name="bookmark-outline"
+					size={40}
+					color={colors.text}
+					style={[
+						styles.receiptIcons,
+						receipt.bookmarked ? null : styles.invisible,
+					]}
+				/>
+			</LinearGradient>
+		</TouchableOpacity>
+	);
 
 	const onTextChanged = (text) => {
 		//Remove non-numerical chars
@@ -197,6 +214,98 @@ export default function ReceiptPage({ navigation }) {
 		setSearchQuery(edittext);
 	};
 
+	const styles = StyleSheet.create({
+		background: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			backgroundColor: colors.darkerBackground,
+		},
+		bold: {
+			fontFamily: "PT Sans Bold",
+			marginLeft: 12,
+			marginTop: 12,
+		},
+		emptyView: {
+			flex: 1,
+			backgroundColor: colors.darkerBackground,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		icons: {
+			marginStart: 20,
+			marginEnd: 20,
+		},
+		receiptIcons: {
+			marginRight: "auto",
+			flex: 4,
+		},
+		inputBlur: {
+			height: 40,
+			flex: 1,
+			paddingLeft: 12,
+			borderColor: colors.text,
+			borderBottomWidth: 2,
+		},
+		inputFocus: {
+			height: 40,
+			flex: 1,
+			paddingLeft: 12,
+			borderColor: colors.primary,
+			borderBottomWidth: 2,
+		},
+		invisible: {
+			display: "none",
+		},
+		receiptInfo: {
+			flex: 4,
+			justifyContent: "center",
+			marginRight: "auto",
+			height: "100%",
+		},
+		receiptItem: {
+			flex: 1,
+			width: "150%",
+			height: 100,
+			left: "10%",
+			marginTop: 20,
+			justifyContent: "center",
+		},
+		receiptList: {
+			width: "100%",
+			backgroundColor: colors.darkerBackground,
+		},
+		receiptTextView: {
+			flex: 1,
+			flexDirection: "row",
+			borderRadius: 45,
+			paddingStart: 20,
+			backgroundColor: colors.primary,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		receiptSubText: {
+			marginEnd: 20,
+		},
+		receiptSubTextView: {
+			flexDirection: "row",
+		},
+		searchBar: {
+			marginBottom: 20,
+			width: "100%",
+			flexDirection: "row",
+			alignItems: "center",
+		},
+		smol: {
+			fontSize: 20,
+		},
+		text: {
+			fontFamily: "PT Sans Regular",
+			color: colors.text,
+			fontSize: 24,
+		},
+	});
+
 	return (
 		<SafeAreaView style={styles.background} onLayout={onLayoutRootView}>
 			<View style={styles.searchBar}>
@@ -205,7 +314,7 @@ export default function ReceiptPage({ navigation }) {
 						fetchReceipts(sortType, searchQuery);
 					}}
 					activeOpacity={0.6}
-					underlayColor={colors.secondary}>
+					underlayColor={colors.disabled}>
 					<Feather
 						name="search"
 						size={24}
@@ -227,6 +336,7 @@ export default function ReceiptPage({ navigation }) {
 					value={searchQuery}
 					onChangeText={(text) => onTextChanged(text)}
 					placeholder="Receipt Name"
+					placeholderTextColor={colors.disabled}
 				/>
 				<TouchableHighlight
 					onPress={() => {
@@ -234,7 +344,7 @@ export default function ReceiptPage({ navigation }) {
 						setShowDialog(true);
 					}}
 					activeOpacity={0.6}
-					underlayColor={colors.secondary}>
+					underlayColor={colors.disabled}>
 					<View>
 						<Feather
 							name="filter"
@@ -306,81 +416,3 @@ export default function ReceiptPage({ navigation }) {
 		</SafeAreaView>
 	);
 }
-
-const styles = StyleSheet.create({
-	background: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		backgroundColor: colors.bg,
-	},
-	bold: {
-		fontFamily: "PT Sans Bold",
-		marginLeft: 12,
-		marginTop: 12,
-	},
-	emptyView: {
-		flex: 1,
-		backgroundColor: colors.bg,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	icons: {
-		marginStart: 20,
-		marginEnd: 20,
-	},
-	inputBlur: {
-		height: 40,
-		flex: 1,
-		paddingLeft: 12,
-		borderColor: colors.text,
-		borderBottomWidth: 2,
-	},
-	inputFocus: {
-		height: 40,
-		flex: 1,
-		paddingLeft: 12,
-		borderColor: colors.primary,
-		borderBottomWidth: 2,
-	},
-	receiptItem: {
-		flex: 1,
-		flexDirection: "row",
-		width: "150%",
-		height: 100,
-		left: "40%",
-		marginTop: 20,
-		justifyContent: "center",
-	},
-	receiptList: {
-		width: "100%",
-		backgroundColor: colors.bg,
-	},
-	receiptTextView: {
-		flex: 1,
-		borderRadius: 45,
-		paddingStart: 20,
-		backgroundColor: colors.primary,
-		justifyContent: "center",
-	},
-	receiptSubText: {
-		marginEnd: 20,
-	},
-	receiptSubTextView: {
-		flexDirection: "row",
-	},
-	searchBar: {
-		marginBottom: 20,
-		width: "100%",
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	smol: {
-		fontSize: 20,
-	},
-	text: {
-		fontFamily: "PT Sans Regular",
-		color: colors.text,
-		fontSize: 24,
-	},
-});

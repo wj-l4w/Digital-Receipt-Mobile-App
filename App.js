@@ -1,9 +1,14 @@
-import { NavigationContainer } from "@react-navigation/native";
+import {
+	NavigationContainer,
+	DefaultTheme,
+	DarkTheme,
+	useTheme,
+} from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import {
@@ -23,9 +28,9 @@ import Bookmark from "./app/screens/BookmarkPage";
 import Setting from "./app/screens/SettingPage";
 import Detail from "./app/screens/DetailPage";
 import QR from "./app/screens/QRPage";
-import colors from "./app/assets/config/colors";
 import firebaseConfig from "./app/assets/config/firebaseconfig";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useColorScheme } from "react-native";
 
 // Initialize Firebase
 const firebaseApp =
@@ -35,7 +40,40 @@ const firestore = getFirestore();
 
 const PERSISTENCE_KEY_1 = "AUTO_EXPIRY_ON";
 const PERSISTENCE_KEY_2 = "AUTO_EXPIRY_DAYS";
-const PERSISTENCE_KEY_3 = "DARK_MODE";
+
+//Themes
+const myLightTheme = {
+	...DefaultTheme,
+	dark: false,
+	colors: {
+		...DefaultTheme.colors,
+		lightBlue: "rgb(72, 202, 228)",
+		primary: "rgb(72, 202, 228)",
+		secondary: "rgb(173, 232, 244)",
+		background: "rgb(255, 255, 255)",
+		darkerBackground: "rgb(238, 238, 238)",
+		text: "rgb(0, 0, 0)",
+		disabled: "rgb(150, 150, 150)",
+		enabled: "rgb(95, 221, 88)",
+		switches: "rgb(255, 240, 240)",
+	},
+};
+const myDarkTheme = {
+	...DarkTheme,
+	dark: true,
+	colors: {
+		...DarkTheme.colors,
+		lightBlue: "rgb(72, 202, 228)",
+		primary: "rgb(0,94,179)",
+		secondary: "rgb(0,171,217)",
+		background: "rgb(24, 24, 24)",
+		darkerBackground: "rgb(12, 12, 12)",
+		text: "rgb(255, 255, 255)",
+		disabled: "rgb(217, 217, 217)",
+		enabled: "rgb(95, 221, 88)",
+		switches: "rgb(255, 240, 240)",
+	},
+};
 
 export default function App() {
 	const Stack = createNativeStackNavigator();
@@ -43,7 +81,15 @@ export default function App() {
 
 	//States
 	const [isLoggedIn, setLogin] = useState(false);
+	const colorScheme = useColorScheme();
 
+	//Theme
+	var colors;
+	if (colorScheme === "dark") {
+		colors = myDarkTheme.colors;
+	} else {
+		colors = myLightTheme.colors;
+	}
 	// Check if user login exists
 	onAuthStateChanged(firebaseAuth, (user) => {
 		if (user) {
@@ -64,12 +110,6 @@ export default function App() {
 				);
 				const autoExpiryDayResult = autoExpiryDayState
 					? JSON.parse(autoExpiryDayState)
-					: undefined;
-
-				//Dark Mode
-				const darkModeState = await AsyncStorage.getItem(PERSISTENCE_KEY_3);
-				const darkModeResult = darkModeState
-					? JSON.parse(darkModeState)
 					: undefined;
 
 				//Auto delete if auto delete was set to on and auto expiry days was set
@@ -107,7 +147,7 @@ export default function App() {
 										deleteDoc(doc.ref);
 									});
 								} else {
-									console.log("Auto delete found no old receipts to delete.");
+									console.log("No old receipts to delete.");
 								}
 							} catch (e) {
 								console.log(
@@ -116,6 +156,8 @@ export default function App() {
 							}
 						}
 					}
+				} else {
+					console.log("Auto delete is not turned on.");
 				}
 			}
 
@@ -127,7 +169,12 @@ export default function App() {
 
 	function HomeComponent() {
 		return (
-			<Stack.Navigator>
+			<Stack.Navigator
+				screenOptions={{
+					headerStyle: {
+						backgroundColor: colors.background,
+					},
+				}}>
 				<Stack.Screen
 					name="ReceiptPage"
 					component={Receipt}
@@ -146,9 +193,15 @@ export default function App() {
 
 	return (
 		<SafeAreaProvider>
-			<NavigationContainer>
+			<NavigationContainer
+				theme={colorScheme === "dark" ? myDarkTheme : myLightTheme}>
 				{!isLoggedIn ? (
-					<Stack.Navigator>
+					<Stack.Navigator
+						screenOptions={{
+							headerStyle: {
+								backgroundColor: colors.background,
+							},
+						}}>
 						<Stack.Screen
 							name="LandingPage"
 							component={LandingPage}
@@ -187,9 +240,12 @@ export default function App() {
 									<Ionicons name={iconName} size={iconSize} color={color} />
 								);
 							},
-							tabBarActiveTintColor: colors.primary,
-							tabBarInactiveTintColor: "gray",
+							tabBarActiveTintColor: colors.lightBlue,
+							tabBarInactiveTintColor: colors.disabled,
 							tabBarShowLabel: false,
+							headerStyle: {
+								backgroundColor: colors.background,
+							},
 						})}>
 						<Tab.Screen
 							name="Home"

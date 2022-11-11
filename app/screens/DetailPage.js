@@ -20,8 +20,8 @@ import {
 } from "react-navigation-header-buttons";
 import { captureRef } from "react-native-view-shot";
 import * as MediaLibrary from "expo-media-library";
+import { useTheme } from "@react-navigation/native";
 
-import colors from "../assets/config/colors";
 import firebaseConfig from "../assets/config/firebaseconfig";
 
 // Initialize Firebase
@@ -29,48 +29,6 @@ const firebaseApp =
 	getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const firestore = getFirestore();
 const firebaseAuth = getAuth(firebaseApp);
-
-//Render item
-const renderItem = (item, index) => {
-	return <Items item={item} textColor={colors.text} key={index} />;
-};
-
-//Receipt items
-const Items = ({ item, textColor }) => (
-	<View style={styles.itemRow}>
-		<View style={[styles.itemColumn1]}>
-			<Text style={[styles.text, textColor]}>{item.name}</Text>
-			{renderDesc(item.desc, textColor)}
-		</View>
-		<View style={[styles.itemColumn2]}>
-			<Text style={[styles.text, textColor]}>{item.quantity}</Text>
-		</View>
-		<View style={[styles.itemColumn3]}>
-			<Text style={[styles.subtext, textColor]}>RM</Text>
-		</View>
-		<View style={[styles.itemColumn4]}>
-			<Text style={[styles.text, styles.price, textColor]}>{item.price}</Text>
-		</View>
-	</View>
-);
-
-//Render Description
-const renderDesc = (array, textColor) => {
-	var returnComponent;
-	if (array != null) {
-		returnComponent = array.map((i, index) => (
-			<Text
-				style={[styles.subtext, styles.itemDesc, { textColor }]}
-				key={index}>
-				{i}
-			</Text>
-		));
-	} else {
-		return;
-	}
-
-	return returnComponent;
-};
 
 //Bookmark the receipt
 async function bookmark(inputBool, UID, firebaseReceiptID) {
@@ -107,6 +65,9 @@ async function savePicture(uri) {
 }
 
 export default function DetailPage({ route, navigation }) {
+	//Theme
+	const { colors } = useTheme();
+	//States
 	const { firebaseReceiptID, receiptName } = route.params;
 	const [UID, setUID] = useState("");
 	const [itemList, setItemList] = useState([]);
@@ -196,7 +157,7 @@ export default function DetailPage({ route, navigation }) {
 					<Item
 						title="Bookmark"
 						iconName={isReceiptBookmarked ? "bookmark" : "bookmark-outline"}
-						color={buttonsEnabled ? colors.primary : colors.disabled}
+						color={buttonsEnabled ? colors.lightBlue : colors.disabled}
 						onPress={() => {
 							console.log("Bookmark pressed");
 							bookmark(!isReceiptBookmarked, UID, firebaseReceiptID);
@@ -206,7 +167,7 @@ export default function DetailPage({ route, navigation }) {
 					<Item
 						title="Export"
 						iconName={"share-outline"}
-						color={buttonsEnabled ? colors.primary : colors.disabled}
+						color={buttonsEnabled ? colors.lightBlue : colors.disabled}
 						onPress={() => {
 							console.log("Export pressed");
 							captureRef(scrollViewRef, {
@@ -226,6 +187,46 @@ export default function DetailPage({ route, navigation }) {
 		});
 	}, [navigation, isReceiptBookmarked, buttonsEnabled]);
 
+	//Render item
+	const renderItem = (item, index) => {
+		return <Items item={item} textColor={colors.text} key={index} />;
+	};
+
+	//Receipt items
+	const Items = ({ item }) => (
+		<View style={styles.itemRow}>
+			<View style={[styles.itemColumn1]}>
+				<Text style={[styles.text]}>{item.name}</Text>
+				{renderDesc(item.desc)}
+			</View>
+			<View style={[styles.itemColumn2]}>
+				<Text style={[styles.text]}>{item.quantity}</Text>
+			</View>
+			<View style={[styles.itemColumn3]}>
+				<Text style={[styles.subtext]}>RM</Text>
+			</View>
+			<View style={[styles.itemColumn4]}>
+				<Text style={[styles.text, styles.price]}>{item.price}</Text>
+			</View>
+		</View>
+	);
+
+	//Render Description
+	const renderDesc = (array, textColor) => {
+		var returnComponent;
+		if (array != null) {
+			returnComponent = array.map((i, index) => (
+				<Text style={[styles.subtext, styles.itemDesc]} key={index}>
+					{i}
+				</Text>
+			));
+		} else {
+			return;
+		}
+
+		return returnComponent;
+	};
+
 	SplashScreen.preventAutoHideAsync();
 
 	const [fontsLoaded] = useFonts({
@@ -242,6 +243,107 @@ export default function DetailPage({ route, navigation }) {
 	if (!fontsLoaded) {
 		return null;
 	}
+
+	const styles = StyleSheet.create({
+		background: {
+			flex: 1,
+			width: "100%",
+			alignItems: "center",
+			backgroundColor: colors.background,
+		},
+		bold: {
+			fontFamily: "PT Sans Bold",
+		},
+		content: {
+			width: "100%",
+			marginVertical: 30,
+		},
+		footer: {
+			width: "100%",
+		},
+		header: {
+			width: "100%",
+		},
+		itemColumn1: {
+			width: "45%",
+			alignItems: "baseline",
+		},
+		itemColumn2: {
+			width: "15%",
+			justifyContent: "flex-end",
+			flexDirection: "row",
+			alignItems: "baseline",
+		},
+		itemColumn3: {
+			justifyContent: "flex-end",
+			width: "10%",
+			flexDirection: "row",
+			alignItems: "baseline",
+		},
+		itemColumn4: {
+			justifyContent: "flex-end",
+			width: "30%",
+			flexDirection: "row",
+			alignItems: "baseline",
+		},
+		itemColumn5: {
+			justifyContent: "flex-end",
+			width: "40%",
+			flexDirection: "row",
+			alignItems: "baseline",
+		},
+		itemRow: {
+			flexDirection: "row",
+			alignItems: "baseline",
+			marginBottom: 10,
+		},
+		itemDesc: {
+			marginLeft: 10,
+		},
+		logo: {
+			width: 150,
+			height: 150,
+			opacity: 0.2,
+			zIndex: -1,
+			top: 0,
+			right: 0,
+			position: "absolute",
+		},
+		price: {
+			paddingLeft: 8,
+		},
+		right: {
+			marginLeft: "auto",
+		},
+		scrollView: {
+			width: "100%",
+			alignSelf: "center",
+			marginBottom: 10,
+		},
+		subtext: {
+			fontFamily: "PT Sans Regular",
+			opacity: 0.65,
+			fontSize: 16,
+			color: colors.text,
+		},
+		subheader: {
+			flexDirection: "row",
+			alignItems: "baseline",
+		},
+		text: {
+			fontFamily: "PT Sans Regular",
+			color: colors.text,
+			fontSize: 24,
+		},
+		title: {
+			fontSize: 40,
+			color: colors.text,
+		},
+		viewShot: {
+			padding: "5%",
+			backgroundColor: colors.background,
+		},
+	});
 
 	return (
 		<SafeAreaView style={styles.background} onLayout={onLayoutRootView}>
@@ -325,102 +427,3 @@ export default function DetailPage({ route, navigation }) {
 		</SafeAreaView>
 	);
 }
-
-const styles = StyleSheet.create({
-	background: {
-		flex: 1,
-		width: "100%",
-		alignItems: "center",
-		backgroundColor: colors.bg,
-	},
-	bold: {
-		fontFamily: "PT Sans Bold",
-	},
-	content: {
-		width: "100%",
-		marginVertical: 30,
-	},
-	footer: {
-		width: "100%",
-	},
-	header: {
-		width: "100%",
-	},
-	itemColumn1: {
-		width: "45%",
-		alignItems: "baseline",
-	},
-	itemColumn2: {
-		width: "15%",
-		justifyContent: "flex-end",
-		flexDirection: "row",
-		alignItems: "baseline",
-	},
-	itemColumn3: {
-		justifyContent: "flex-end",
-		width: "10%",
-		flexDirection: "row",
-		alignItems: "baseline",
-	},
-	itemColumn4: {
-		justifyContent: "flex-end",
-		width: "30%",
-		flexDirection: "row",
-		alignItems: "baseline",
-	},
-	itemColumn5: {
-		justifyContent: "flex-end",
-		width: "40%",
-		flexDirection: "row",
-		alignItems: "baseline",
-	},
-	itemRow: {
-		flexDirection: "row",
-		alignItems: "baseline",
-		marginBottom: 10,
-	},
-	itemDesc: {
-		marginLeft: 10,
-	},
-	logo: {
-		width: 150,
-		height: 150,
-		opacity: 0.2,
-		zIndex: -1,
-		top: 0,
-		right: 0,
-		position: "absolute",
-	},
-	price: {
-		paddingLeft: 8,
-	},
-	right: {
-		marginLeft: "auto",
-	},
-	scrollView: {
-		width: "100%",
-		alignSelf: "center",
-		marginBottom: 10,
-	},
-	subtext: {
-		fontFamily: "PT Sans Regular",
-		opacity: 0.65,
-		fontSize: 16,
-	},
-	subheader: {
-		flexDirection: "row",
-		alignItems: "baseline",
-	},
-	text: {
-		fontFamily: "PT Sans Regular",
-		color: colors.text,
-		fontSize: 24,
-	},
-	title: {
-		fontSize: 40,
-	},
-	viewShot: {
-		padding: "5%",
-		backgroundColor: colors.bg,
-	},
-});

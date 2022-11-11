@@ -6,6 +6,7 @@ import {
 	TouchableHighlight,
 	Switch,
 	TextInput,
+	useColorScheme,
 } from "react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
@@ -13,10 +14,10 @@ import { useFonts } from "expo-font";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, signOut } from "firebase/auth";
-
-import colors from "../assets/config/colors";
-import firebaseConfig from "../assets/config/firebaseconfig";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTheme } from "@react-navigation/native";
+
+import firebaseConfig from "../assets/config/firebaseconfig";
 
 // Initialize Firebase
 const firebaseApp =
@@ -25,23 +26,20 @@ const firebaseAuth = getAuth(firebaseApp);
 
 const PERSISTENCE_KEY_1 = "AUTO_EXPIRY_ON";
 const PERSISTENCE_KEY_2 = "AUTO_EXPIRY_DAYS";
-const PERSISTENCE_KEY_3 = "DARK_MODE";
 
 export default function SettingPage({ navigation }) {
+	//Theme
+	const { colors } = useTheme();
+	const colorScheme = useColorScheme();
 	//Auto expiry state
 	const [autoExpiryEnabled, setAutoExpiry] = useState(false);
 	const toggleAutoExpiry = () => {
 		setAutoExpiry((previousState) => !previousState);
 		AsyncStorage.setItem(PERSISTENCE_KEY_1, JSON.stringify(!autoExpiryEnabled));
 	};
+
 	//Auto expiry days state
 	const [autoExpiryDays, setAutoExpiryDays] = useState("365");
-	//Dark mode state
-	const [darkModeEnabled, setDarkMode] = useState(false);
-	const toggleDarkMode = () => {
-		setDarkMode((previousState) => !previousState);
-		AsyncStorage.setItem(PERSISTENCE_KEY_3, JSON.stringify(!darkModeEnabled));
-	};
 
 	//Save persistent changes to settings
 	//And restore them if they exist
@@ -67,19 +65,8 @@ export default function SettingPage({ navigation }) {
 				setAutoExpiryDays(autoExpiryDayResult);
 			}
 
-			//Dark Mode
-			const darkModeState = await AsyncStorage.getItem(PERSISTENCE_KEY_3);
-			const darkModeResult = darkModeState
-				? JSON.parse(darkModeState)
-				: undefined;
-
-			if (darkModeResult !== undefined) {
-				setDarkMode(darkModeResult);
-			}
-
 			console.log("Auto expiry:  " + autoExpiryOnResult);
 			console.log("Auto expiry Days: " + autoExpiryDayResult);
-			console.log("Dark Mode: " + darkModeResult);
 		}
 
 		restoreSettings();
@@ -115,17 +102,80 @@ export default function SettingPage({ navigation }) {
 		AsyncStorage.setItem(PERSISTENCE_KEY_2, JSON.stringify(edittext));
 	};
 
+	const styles = StyleSheet.create({
+		background: {
+			flex: 1,
+			alignItems: "center",
+		},
+		buttons: {
+			marginTop: "auto",
+			marginBottom: 20,
+			height: 50,
+			width: 200,
+			backgroundColor: colors.lightBlue,
+			borderRadius: 10,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		buttonText: {
+			fontFamily: "PT Sans Regular",
+			color: colors.text,
+			fontSize: 24,
+		},
+		disabled: {
+			opacity: 0.35,
+		},
+		enabled: {
+			color: colors.text,
+		},
+		input: {
+			borderColor: colors.text,
+			borderWidth: 1,
+			borderRadius: 4,
+			backgroundColor: colors.background,
+			paddingHorizontal: 12,
+			marginEnd: 5,
+		},
+		inputView: {
+			marginLeft: "auto",
+			flexDirection: "row",
+		},
+		overlay: {
+			...StyleSheet.absoluteFillObject,
+			backgroundColor:
+				colorScheme === "dark" ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0)",
+		},
+		settingsRow: {
+			flexDirection: "row",
+			width: "90%",
+			alignItems: "center",
+			marginVertical: 15,
+		},
+		switch: {
+			marginLeft: "auto",
+			transform: [{ scaleX: 1.4 }, { scaleY: 1.4 }],
+		},
+		text: {
+			fontFamily: "PT Sans Regular",
+			color: colors.text,
+			overflow: "visible",
+			fontSize: 24,
+			alignItems: "center",
+		},
+	});
+
 	return (
 		<ImageBackground
 			style={{ flex: 1 }}
 			source={require("../assets/landing.png")}
 			onLayout={onLayoutRootView}>
 			<SafeAreaView style={styles.background}>
+				<View style={styles.overlay} />
 				<View style={styles.settingsRow}>
 					<Text style={styles.text}>Auto Receipt Expiry</Text>
 					<Switch
 						trackColor={{ false: colors.disabled, true: colors.enabled }}
-						thumbColor={colors.switch}
+						thumbColor={colors.switches}
 						onValueChange={toggleAutoExpiry}
 						value={autoExpiryEnabled}
 						style={styles.switch}
@@ -149,16 +199,6 @@ export default function SettingPage({ navigation }) {
 						<Text style={styles.text}>Days</Text>
 					</View>
 				</View>
-				<View style={styles.settingsRow}>
-					<Text style={styles.text}>Dark Mode</Text>
-					<Switch
-						trackColor={{ false: colors.disabled, true: colors.enabled }}
-						thumbColor={colors.switch}
-						onValueChange={toggleDarkMode}
-						value={darkModeEnabled}
-						style={styles.switch}
-					/>
-				</View>
 				<TouchableHighlight
 					onPress={() => {
 						console.log("User attempted to sign out.");
@@ -177,69 +217,3 @@ export default function SettingPage({ navigation }) {
 		</ImageBackground>
 	);
 }
-
-const styles = StyleSheet.create({
-	background: {
-		flex: 1,
-		//justifyContent: "center",
-		alignItems: "center",
-	},
-	bold: {
-		fontFamily: "PT Sans Bold",
-	},
-	buttonGroup: {
-		justifyContent: "space-between",
-		width: "80%",
-		height: "24%",
-	},
-	buttons: {
-		marginTop: "auto",
-		marginBottom: 20,
-		height: 50,
-		width: 200,
-		backgroundColor: colors.primary,
-		borderRadius: 10,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	buttonText: {
-		fontFamily: "PT Sans Regular",
-		color: colors.text,
-		fontSize: 24,
-	},
-	disabled: {
-		opacity: 0.35,
-	},
-	enabled: {
-		color: colors.black,
-	},
-	input: {
-		borderColor: colors.black,
-		borderWidth: 1,
-		borderRadius: 4,
-		backgroundColor: colors.white,
-		paddingHorizontal: 12,
-		marginEnd: 5,
-	},
-	inputView: {
-		marginLeft: "auto",
-		flexDirection: "row",
-	},
-	settingsRow: {
-		flexDirection: "row",
-		width: "90%",
-		alignItems: "center",
-		marginVertical: 15,
-	},
-	switch: {
-		marginLeft: "auto",
-		transform: [{ scaleX: 1.4 }, { scaleY: 1.4 }],
-	},
-	text: {
-		fontFamily: "PT Sans Regular",
-		color: colors.black,
-		overflow: "visible",
-		fontSize: 24,
-		alignItems: "center",
-	},
-});
